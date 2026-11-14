@@ -9,6 +9,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from backend.app.api.configuration_router import router as configuration_router
+
 # Calculate base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -28,6 +30,9 @@ if STATIC_DIR.exists():
 
 # Templates
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# Include API Routers
+app.include_router(configuration_router)
 
 
 @app.get("/", response_class=HTMLResponse)

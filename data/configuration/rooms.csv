@@ -1,0 +1,4 @@
+id,floor_id,name,room_number,area_sqm,description,created_at,updated_at
+rm_101,flr_01,101 - Conf. North,101,38.0,North Conference Room,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
+rm_102,flr_01,102 - Open Work,102,85.0,Open Workspace Zone,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
+rm_103,flr_01,103 - Exec. Office,103,32.0,Executive Office Suite,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
