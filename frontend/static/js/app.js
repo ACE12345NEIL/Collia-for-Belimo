@@ -357,11 +357,11 @@ function renderCanvas() {
       // Floor Breakdown Box-like Border Container
       const floorBox = document.createElement('div');
       floorBox.id = `floor-box-${floorId}`;
-      floorBox.className = `floor-group-container relative rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border-strong/70 bg-surface-base/50'} pt-4 pb-3 px-3 flex flex-col gap-2 shrink-0 transition-all shadow-xs`;
+      floorBox.className = `floor-group-container relative rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border-strong/70 bg-surface-base/50'} pt-5 pb-3.5 px-3.5 flex flex-col gap-2 shrink-0 transition-all shadow-xs`;
 
-      // Floor Breakdown Badge on top-left border
+      // Floor Breakdown Badge on top-left border with ample padding and clearance
       const floorBadge = document.createElement('div');
-      floorBadge.className = 'absolute -top-3 left-3 bg-surface-base px-2.5 py-0.5 border border-border-strong rounded font-label-sm text-label-sm font-semibold text-on-surface flex items-center gap-1.5 shadow-xs cursor-pointer select-none hover:border-primary hover:text-primary transition-colors';
+      floorBadge.className = 'absolute -top-3 left-3 bg-surface-base px-3 py-1 border border-border-strong rounded font-label-sm text-label-sm font-semibold text-on-surface flex items-center gap-1.5 shadow-xs cursor-pointer select-none hover:border-primary hover:text-primary transition-colors';
       floorBadge.title = 'Click to view/edit Floor details';
       floorBadge.onclick = (e) => {
         e.stopPropagation();
@@ -369,10 +369,10 @@ function renderCanvas() {
       };
       floorBadge.innerHTML = `
         <span class="material-symbols-outlined text-[15px] text-primary">layers</span>
-        <span class="uppercase tracking-wide">${floorSection}</span>
+        <span class="uppercase tracking-wide leading-none">${floorSection}</span>
         <span class="text-border-strong font-normal">|</span>
-        <span class="font-code-xs text-[10px] text-secondary">Level ${floorObj.floor_number || 1}</span>
-        <span class="ml-1 px-1.5 py-0.2 rounded bg-primary/10 text-primary font-code-xs text-[9px] font-bold">${floorRooms.length} ${floorRooms.length === 1 ? 'Room' : 'Rooms'}</span>
+        <span class="font-code-xs text-[10px] text-secondary leading-none">Level ${floorObj.floor_number || 1}</span>
+        <span class="ml-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary font-code-xs text-[9px] font-bold leading-none">${floorRooms.length} ${floorRooms.length === 1 ? 'Room' : 'Rooms'}</span>
       `;
       floorBox.appendChild(floorBadge);
 
