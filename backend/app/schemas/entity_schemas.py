@@ -39,11 +39,28 @@ class FloorCreate(BaseModel):
     floor_number: int = Field(default=1)
     description: Optional[str] = Field(default="")
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Floor name cannot be empty.")
+        return v
+
 
 class FloorUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     floor_number: Optional[int] = None
     description: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Floor name cannot be empty.")
+        return v
 
 
 class FloorResponse(BaseModel):
@@ -64,12 +81,29 @@ class RoomCreate(BaseModel):
     area_sqm: Optional[float] = Field(default=0.0, ge=0.0)
     description: Optional[str] = Field(default="")
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Room name cannot be empty.")
+        return v
+
 
 class RoomUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     room_number: Optional[str] = None
     area_sqm: Optional[float] = Field(None, ge=0.0)
     description: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Room name cannot be empty.")
+        return v
 
 
 class RoomResponse(BaseModel):
@@ -92,6 +126,14 @@ class EquipmentCreate(BaseModel):
     room_id: Optional[str] = None
     building_id: Optional[str] = None
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Equipment name cannot be empty.")
+        return v
+
     @field_validator("csv_filename")
     @classmethod
     def sanitize_csv_filename(cls, v: Optional[str]) -> str:
@@ -109,6 +151,15 @@ class EquipmentUpdate(BaseModel):
     description: Optional[str] = None
     csv_filename: Optional[str] = None
     room_id: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("Equipment name cannot be empty.")
+        return v
 
     @field_validator("csv_filename")
     @classmethod
