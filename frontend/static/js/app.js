@@ -408,28 +408,34 @@ function renderSidebar() {
 function renderCanvas() {
   if (!state.topology) return;
 
-  // 1. Render Plant components
-  const plantContainer = document.getElementById('plant-components-container');
-  if (plantContainer) {
+  // 1. Render Plant components into three tier rows: Chillers | EVs | AHUs
+  const tierChiller = document.getElementById('plant-tier-chiller');
+  const tierEV = document.getElementById('plant-tier-ev');
+  const tierAHU = document.getElementById('plant-tier-ahu');
+  if (tierChiller && tierEV && tierAHU) {
     const sharedEq = state.topology.shared_equipment || [];
-    plantContainer.innerHTML = '';
+    tierChiller.innerHTML = '';
+    tierEV.innerHTML = '';
+    tierAHU.innerHTML = '';
 
-    sharedEq.forEach(eq => {
+    const sortedSharedEq = [...sharedEq].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    sortedSharedEq.forEach(eq => {
       const isSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
       let icon = 'mode_fan';
       let sublabel = 'Air Handling Unit';
-      let cardWidth = 'min-w-[140px] w-auto';
+      let cardWidth = 'min-w-[130px] w-auto';
       let statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-on-surface"><span class="">Supply Fan</span><span class="text-status-success font-medium">Auto</span></div>`;
 
       if (eq.equipment_type === 'CHILLER') {
         icon = 'ac_unit';
         sublabel = 'Central Chiller';
-        cardWidth = 'min-w-[125px] w-auto';
+        cardWidth = 'min-w-[120px] w-auto';
         statHtml = `<div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div>`;
       } else if (eq.equipment_type === 'EV') {
         icon = 'speed';
         sublabel = 'Energy Valve';
-        cardWidth = 'min-w-[145px] w-auto';
+        cardWidth = 'min-w-[130px] w-auto';
         statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div>`;
       }
 
@@ -454,7 +460,10 @@ function renderCanvas() {
       `;
 
       card.onclick = () => selectEntity('equipment', eq.id);
-      plantContainer.appendChild(card);
+
+      if (eq.equipment_type === 'CHILLER') tierChiller.appendChild(card);
+      else if (eq.equipment_type === 'EV') tierEV.appendChild(card);
+      else tierAHU.appendChild(card);
     });
   }
 
@@ -485,7 +494,7 @@ function renderCanvas() {
       // Floor Breakdown Box-like Border Container (Auto-expanding width)
       const floorBox = document.createElement('div');
       floorBox.id = `floor-box-${floorId}`;
-      floorBox.className = `floor-group-container relative rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border-strong/70 bg-surface-base/50'} pt-5 pb-3.5 px-3.5 flex flex-col gap-2 shrink-0 transition-all shadow-xs min-w-fit w-auto`;
+      floorBox.className = `floor-group-container relative rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border-strong/70 bg-surface-base/50'} pt-7 pb-5 px-5 flex flex-col gap-4 shrink-0 transition-all shadow-xs min-w-fit w-auto`;
 
       // Floor Breakdown Badge on top-left border
       const floorBadge = document.createElement('div');
@@ -506,7 +515,7 @@ function renderCanvas() {
 
       // Rooms row inside this floor box (flex-wrap for automatic expansion)
       const roomsRow = document.createElement('div');
-      roomsRow.className = 'flex items-start gap-4 flex-wrap';
+      roomsRow.className = 'flex items-start gap-6 flex-wrap';
 
       floorRooms.forEach(room => {
         const thisRoomEq = roomEq.filter(eq => eq.room_id === room.id);
@@ -515,7 +524,7 @@ function renderCanvas() {
         const zoneDiv = document.createElement('div');
         zoneDiv.id = `room-card-${room.id}`;
         // Automatically increases size to fit all room equipment cleanly
-        zoneDiv.className = `min-w-[280px] w-auto max-w-[620px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto shrink-0 flex flex-col cursor-pointer`;
+        zoneDiv.className = `min-w-[280px] w-auto max-w-[620px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-4 shadow-xs transition-all pointer-events-auto shrink-0 flex flex-col cursor-pointer`;
 
         let headerHtml = `
           <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer select-none" onclick="selectEntity('room', '${room.id}')">
@@ -533,7 +542,7 @@ function renderCanvas() {
         `;
 
         // Render ALL devices belonging to this room (Multiple VAVs and RAQS supported)
-        let devicesHtml = '<div class="grid grid-cols-2 gap-2.5 flex-1">';
+        let devicesHtml = '<div class="grid grid-cols-2 gap-3 flex-1">';
         if (thisRoomEq.length === 0) {
           devicesHtml += `
             <div class="p-2.5 rounded border border-dashed border-border-subtle flex flex-col items-center justify-center text-secondary text-center cursor-pointer hover:border-primary hover:text-primary transition-colors min-h-[90px]" onclick="openAddRoomDeviceModal('${room.id}', '${room.name}')">
@@ -607,6 +616,9 @@ function renderCanvas() {
 // Dynamic Top-Layer SVG Schematic Interconnect Arrows
 // Reduced Opacity to 60% (stroke-opacity="0.6")
 // Connects Chiller -> EV -> AHU and Air Supply Duct to Rooms
+// Three-tier vertical layout: Chillers (top) | EVs (mid) | AHUs (bottom)
+// Arrows flow DOWNWARD within plant box, never crossing horizontally between tiers.
+// Return lines go left-of-plant below the box. Air ducts exit right from AHU tier.
 // -------------------------------------------------------------
 function updateCanvasSchematicArrows() {
   const svg = document.getElementById('canvas-schematic-svg');
@@ -634,7 +646,10 @@ function updateCanvasSchematicArrows() {
   const defs = `
     <defs>
       <marker id="arrow-chw" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
-        <path d="M0,0 L6,3 L0,6 Z" fill="#0284C7" fill-opacity="0.6"></path>
+        <path d="M0,0 L6,3 L0,6 Z" fill="#0284C7" fill-opacity="0.35"></path>
+      </marker>
+      <marker id="arrow-ev" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+        <path d="M0,0 L6,3 L0,6 Z" fill="#16A34A" fill-opacity="0.35"></path>
       </marker>
       <marker id="arrow-return" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
         <path d="M0,0 L6,3 L0,6 Z" fill="#64748B" fill-opacity="0.6"></path>
@@ -649,148 +664,255 @@ function updateCanvasSchematicArrows() {
   `;
 
   let paths = '';
+  const rels = state.topology.relationships || [];
+  const sharedEq = state.topology.shared_equipment || [];
+  const chillers = sharedEq.filter(e => e.equipment_type === 'CHILLER');
+  const evs = sharedEq.filter(e => e.equipment_type === 'EV');
+  const ahus = sharedEq.filter(e => e.equipment_type === 'AHU');
 
-  // 1. Central Hydronic Loop: Chiller -> EV -> AHU
-  const chillers = (state.topology.shared_equipment || []).filter(e => e.equipment_type === 'CHILLER');
-  const evs = (state.topology.shared_equipment || []).filter(e => e.equipment_type === 'EV');
-  const ahus = (state.topology.shared_equipment || []).filter(e => e.equipment_type === 'AHU');
-
-  // Pair connections: use ONLY actual relationships — no fallback
+  // ─────────────────────────────────────────────────────────────
+  // 1. Chiller → EV  (VERTICAL, downward, Blue)
+  //    Exits bottom-center of chiller card, enters top-center of EV card.
+  //    Offset each arrow horizontally by a small amount so multiple arrows
+  //    between different chillers/EVs never overlap.
+  // ─────────────────────────────────────────────────────────────
+  let chwArrowIdx = 0;
   chillers.forEach(ch => {
     const cEl = document.getElementById(`node-${ch.id}`);
     const c = getCoords(cEl);
     if (!c) return;
 
-    const targetEvs = (state.topology.relationships || [])
-      .filter(r => r.source_id === ch.id && r.relationship_type === 'SUPPLIES')
-      .map(r => evs.find(e => e.id === r.target_id))
-      .filter(Boolean);
+    const targetEvRels = rels.filter(r => r.source_id === ch.id && r.relationship_type === 'SUPPLIES');
+    const targetEvs = targetEvRels.map(r => evs.find(e => e.id === r.target_id)).filter(Boolean);
 
     targetEvs.forEach(evObj => {
       const evEl = document.getElementById(`node-${evObj.id}`);
       const ev = getCoords(evEl);
       if (!ev) return;
 
-      const startX = Math.round(c.right);
-      const endX = Math.round(ev.x);
-      const y = Math.round(c.centerY);
-      const midX = Math.round((startX + endX) / 2);
+      // Stagger horizontally: each Chiller→EV pair gets its own x offset column
+      const offset = (chwArrowIdx - Math.floor(targetEvs.length / 2)) * 14;
+      const startX = Math.round(c.centerX + offset);
+      const endX   = Math.round(ev.centerX + offset);
+      const startY = Math.round(c.bottom);
+      const endY   = Math.round(ev.y);
+      const midY   = Math.round((startY + endY) / 2);
+
+      // Straight down if aligned, else step horizontally at midpoint
+      let d;
+      if (Math.abs(startX - endX) < 4) {
+        d = `M ${startX} ${startY} L ${startX} ${endY}`;
+      } else {
+        d = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      }
+
+      const labelX = Math.round((startX + endX) / 2);
+      const labelY = Math.round(midY);
 
       paths += `
-        <!-- Chiller to EV (60% opacity) -->
-        <path d="M ${startX} ${y} L ${endX} ${y}" fill="none" stroke="#0284C7" stroke-width="3" stroke-opacity="0.6" marker-end="url(#arrow-chw)"></path>
-        <rect x="${midX - 25}" y="${y - 18}" width="50" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8" stroke-opacity="0.6"></rect>
-        <text x="${midX}" y="${y - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-[#0284C7] font-bold" fill-opacity="0.8">6.1°C</text>
+        <!-- Chiller→EV ↓ (Blue 35%) -->
+        <path d="${d}" fill="none" stroke="#0284C7" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-chw)"></path>
+        <rect x="${labelX - 20}" y="${labelY - 8}" width="40" height="14" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8" stroke-opacity="0.35"></rect>
+        <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#0284C7" fill-opacity="0.8" font-weight="bold">6.1°C</text>
       `;
+      chwArrowIdx++;
     });
   });
 
-  // EV -> AHU — only real relationships
+  // ─────────────────────────────────────────────────────────────
+  // 2. EV → AHU  (VERTICAL, downward, Green)
+  //    Exits bottom-center of EV card, enters top-center of AHU card.
+  //    Each EV→AHU pair gets its own x column to avoid overlap.
+  // ─────────────────────────────────────────────────────────────
+  let evArrowIdx = 0;
   evs.forEach(evObj => {
     const evEl = document.getElementById(`node-${evObj.id}`);
     const ev = getCoords(evEl);
     if (!ev) return;
 
-    const targetAhus = (state.topology.relationships || [])
-      .filter(r => r.source_id === evObj.id && (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES'))
-      .map(r => ahus.find(a => a.id === r.target_id))
-      .filter(Boolean);
+    const targetAhuRels = rels.filter(r =>
+      r.source_id === evObj.id &&
+      (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES')
+    );
+    const targetAhus = targetAhuRels.map(r => ahus.find(a => a.id === r.target_id)).filter(Boolean);
 
     targetAhus.forEach(ahuObj => {
       const ahuEl = document.getElementById(`node-${ahuObj.id}`);
       const ahu = getCoords(ahuEl);
       if (!ahu) return;
 
-      const startX = Math.round(ev.right);
-      const endX = Math.round(ahu.x);
-      const y = Math.round(ev.centerY);
-      const midX = Math.round((startX + endX) / 2);
+      const offset = (evArrowIdx - Math.floor(targetAhus.length / 2)) * 14;
+      const startX = Math.round(ev.centerX + offset);
+      const endX   = Math.round(ahu.centerX + offset);
+      const startY = Math.round(ev.bottom);
+      const endY   = Math.round(ahu.y);
+      const midY   = Math.round((startY + endY) / 2);
+
+      let d;
+      if (Math.abs(startX - endX) < 4) {
+        d = `M ${startX} ${startY} L ${startX} ${endY}`;
+      } else {
+        d = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      }
+
+      const labelX = Math.round((startX + endX) / 2);
+      const labelY = Math.round(midY);
 
       paths += `
-        <!-- EV to AHU (60% opacity) -->
-        <path d="M ${startX} ${y} L ${endX} ${y}" fill="none" stroke="#0284C7" stroke-width="3" stroke-opacity="0.6" marker-end="url(#arrow-chw)"></path>
-        <rect x="${midX - 25}" y="${y - 18}" width="50" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8" stroke-opacity="0.6"></rect>
-        <text x="${midX}" y="${y - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-[#0284C7] font-bold" fill-opacity="0.8">Coil In</text>
+        <!-- EV→AHU ↓ (Green 35%) -->
+        <path d="${d}" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-ev)"></path>
+        <rect x="${labelX - 22}" y="${labelY - 8}" width="44" height="14" rx="3" fill="#FFFFFF" stroke="#16A34A" stroke-width="0.8" stroke-opacity="0.35"></rect>
+        <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#16A34A" fill-opacity="0.8" font-weight="bold">Coil In</text>
       `;
+      evArrowIdx++;
     });
   });
 
-  // Hydronic Return Line — only draw when at least one chiller→EV AND ev→AHU real relationship exists
-  const rels = state.topology.relationships || [];
-  const hasChillerEvRel = chillers.some(ch =>
-    rels.some(r => r.source_id === ch.id && r.relationship_type === 'SUPPLIES' && evs.some(ev => ev.id === r.target_id))
-  );
-  const hasEvAhuRel = evs.some(ev =>
-    rels.some(r => r.source_id === ev.id && (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES') && ahus.some(a => a.id === r.target_id))
-  );
+  // ─────────────────────────────────────────────────────────────
+  // 3. Hydronic Return: AHU → Chiller  (dashed grey, below plant box)
+  //    Each return pair exits the left side of its AHU card and routes
+  //    through a horizontal channel BELOW the entire plant box, then
+  //    rises back into the bottom of the matching chiller card.
+  //    Each pair uses a different Y level in the channel so lines never overlap.
+  // ─────────────────────────────────────────────────────────────
+  const returnPairs = [];
+  ahus.forEach(ahu => {
+    const upstreamEvRels = rels.filter(r =>
+      r.target_id === ahu.id &&
+      (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES')
+    );
+    const upstreamEvs = upstreamEvRels.map(r => evs.find(e => e.id === r.source_id)).filter(Boolean);
 
-  const firstChillerEl = chillers[0] ? document.getElementById(`node-${chillers[0].id}`) : null;
-  const firstAhuEl = ahus[0] ? document.getElementById(`node-${ahus[0].id}`) : null;
-  const cFirst = getCoords(firstChillerEl);
-  const aFirst = getCoords(firstAhuEl);
+    let matchedChillers = [];
+    upstreamEvs.forEach(ev => {
+      const chRels = rels.filter(r => r.target_id === ev.id && r.relationship_type === 'SUPPLIES');
+      chRels.forEach(cr => {
+        const ch = chillers.find(c => c.id === cr.source_id);
+        if (ch && !matchedChillers.includes(ch)) matchedChillers.push(ch);
+      });
+    });
 
-  if (cFirst && aFirst && hasChillerEvRel && hasEvAhuRel) {
-    const returnY = Math.round(Math.max(cFirst.bottom, aFirst.bottom) + 14);
-    const midX = Math.round((cFirst.centerX + aFirst.centerX) / 2);
+    // Direct Chiller → AHU connection
+    rels.filter(r => r.target_id === ahu.id && r.relationship_type === 'SUPPLIES').forEach(cr => {
+      const ch = chillers.find(c => c.id === cr.source_id);
+      if (ch && !matchedChillers.includes(ch)) matchedChillers.push(ch);
+    });
+
+    // Direct AHU → Chiller relationship
+    rels.filter(r => r.source_id === ahu.id && (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES')).forEach(dr => {
+      const ch = chillers.find(c => c.id === dr.target_id);
+      if (ch && !matchedChillers.includes(ch)) matchedChillers.push(ch);
+    });
+
+    // Implicit loop: AHU in hydronic loop via EV → link to primary chiller
+    if (matchedChillers.length === 0 && upstreamEvs.length > 0 && chillers.length > 0) {
+      matchedChillers.push(chillers[0]);
+    }
+
+    matchedChillers.forEach(ch => {
+      if (!returnPairs.some(p => p.ahu.id === ahu.id && p.chiller.id === ch.id)) {
+        returnPairs.push({ ahu, chiller: ch });
+      }
+    });
+  });
+
+  // Find the bottom-most edge of the entire plant box
+  const allPlantCards = [...chillers, ...evs, ...ahus]
+    .map(e => getCoords(document.getElementById(`node-${e.id}`)))
+    .filter(Boolean);
+  const plantBottomMax = allPlantCards.length > 0 ? Math.max(...allPlantCards.map(c => c.bottom)) : 300;
+
+  // Find left edge of plant box for the return channel corridor
+  const plantLeftMin = allPlantCards.length > 0 ? Math.min(...allPlantCards.map(c => c.x)) : 30;
+  const returnChannelBaseY = Math.round(plantBottomMax + 18);
+
+  returnPairs.forEach((pair, pairIdx) => {
+    const cEl = document.getElementById(`node-${pair.chiller.id}`);
+    const aEl = document.getElementById(`node-${pair.ahu.id}`);
+    const c = getCoords(cEl);
+    const a = getCoords(aEl);
+    if (!c || !a) return;
+
+    // Each pair gets its own Y level in the return channel (stacked, 20px apart)
+    const returnY = returnChannelBaseY + pairIdx * 20;
+
+    // Exit the AHU left-side center; re-enter the chiller left-side bottom
+    const ahuExitX    = Math.round(a.x);
+    const ahuExitY    = Math.round(a.centerY);
+    const chillerEntX = Math.round(c.x);
+    const chillerEntY = Math.round(c.bottom);
+
+    // Left corridor X: 20px left of the leftmost plant card, stagger per pair
+    const corridorX   = Math.round(plantLeftMin - 24 - pairIdx * 16);
+
+    const d = `M ${ahuExitX} ${ahuExitY} L ${corridorX} ${ahuExitY} L ${corridorX} ${returnY} L ${chillerEntX} ${returnY} L ${chillerEntX} ${chillerEntY}`;
+    const labelX = Math.round((corridorX + chillerEntX) / 2);
+    const labelY = returnY;
+    const returnLabel = returnPairs.length > 1 ? `${pair.ahu.name} Rtn 12.8°C` : `Hydronic Return 12.8°C`;
 
     paths += `
-      <!-- Hydronic Return (60% opacity) -->
-      <path d="M ${Math.round(aFirst.centerX)} ${Math.round(aFirst.bottom)} L ${Math.round(aFirst.centerX)} ${returnY} L ${Math.round(cFirst.centerX)} ${returnY} L ${Math.round(cFirst.centerX)} ${Math.round(cFirst.bottom + 4)}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-return)"></path>
-      <rect x="${midX - 70}" y="${returnY - 9}" width="140" height="18" rx="4" fill="#FFFFFF" stroke="#64748B" stroke-width="1" stroke-opacity="0.6"></rect>
-      <text x="${midX}" y="${returnY + 4}" text-anchor="middle" class="font-code-xs text-[10px] fill-secondary font-medium" fill-opacity="0.8">◀ Hydronic Return 12.8°C ◀</text>
+      <!-- Hydronic Return ${pair.ahu.name} → ${pair.chiller.name} (grey dashed 60%) -->
+      <path d="${d}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-return)"></path>
+      <rect x="${labelX - 58}" y="${labelY - 8}" width="116" height="15" rx="3" fill="#FFFFFF" stroke="#64748B" stroke-width="0.8" stroke-opacity="0.6"></rect>
+      <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#64748B" fill-opacity="0.8">◀ ${returnLabel} ◀</text>
     `;
-  }
+  });
 
-  // 2. Supply Air Duct: AHU exit -> distribution manifold -> only rooms/VAVs with real AHU→VAV or AHU→ROOM relationships
-  ahus.forEach(ahuObj => {
+  // ─────────────────────────────────────────────────────────────
+  // 4. Supply Air Ducts: AHU → rooms (orange)
+  //    Each AHU exits its RIGHT side, rises/drops to a horizontal
+  //    manifold above the room boxes, then drops into each served room.
+  //    Each AHU gets its own manifold Y elevation so they don't overlap.
+  // ─────────────────────────────────────────────────────────────
+  ahus.forEach((ahuObj, ahuIdx) => {
     const ahuEl = document.getElementById(`node-${ahuObj.id}`);
     const ahu = getCoords(ahuEl);
     if (!ahu) return;
 
-    // Find VAVs/rooms that this AHU actually SUPPLIES via relationships
     const ahuRels = rels.filter(r =>
       r.source_id === ahuObj.id &&
       (r.relationship_type === 'SUPPLIES' || r.relationship_type === 'SERVES' || r.relationship_type === 'CONNECTED_TO')
     );
-    if (ahuRels.length === 0) return; // No connections at all — draw nothing
+    if (ahuRels.length === 0) return;
 
-    // Collect target room card divs that correspond to these relationships
     const targetIds = new Set(ahuRels.map(r => r.target_id));
     const allRoomDivs = Array.from(document.querySelectorAll('#zones-canvas-container [id^="room-card-"]'));
 
-    // Match room cards: room card id is "room-card-{roomId}", VAV nodes are "node-{eqId}"
     const connectedRoomDivs = allRoomDivs.filter(div => {
       const roomId = div.id.replace('room-card-', '');
-      if (targetIds.has(roomId)) return true; // AHU directly serves room
-      // Check if any VAV inside this room is in targetIds
+      if (targetIds.has(roomId)) return true;
       const vavNodes = div.querySelectorAll('[id^="node-"]');
       return Array.from(vavNodes).some(n => targetIds.has(n.id.replace('node-', '')));
     });
 
-    // Fall back to ALL room divs only if AHU has connections but no matching divs rendered yet
-    const roomDivs = connectedRoomDivs.length > 0 ? connectedRoomDivs : [];
-    if (roomDivs.length === 0) return;
+    if (connectedRoomDivs.length === 0) return;
 
-    const trunkY = Math.round(ahu.centerY);
-    const riserX = Math.round(ahu.right + 60);
-    const manifoldY = Math.round(Math.min(...roomDivs.map(d => getCoords(d)?.y || 300)) - 35);
+    const minRoomTop = Math.min(...connectedRoomDivs.map(d => getCoords(d)?.y || 480));
+
+    // Each AHU gets its own manifold level, stacked above zones area
+    const manifoldY = Math.round(minRoomTop - 36 - ahuIdx * 22);
+
+    // Exit right side of AHU, then rise to manifold
+    const exitX  = Math.round(ahu.right);
+    const exitY  = Math.round(ahu.centerY);
+    const riserX = Math.round(ahu.right + 30 + ahuIdx * 20);
+    const exitPath = `M ${exitX} ${exitY} L ${riserX} ${exitY} L ${riserX} ${manifoldY}`;
 
     paths += `
-      <!-- Main AHU exit trunk (60% opacity) -->
-      <path d="M ${Math.round(ahu.right)} ${trunkY} L ${riserX} ${trunkY} L ${riserX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="3.5" stroke-opacity="0.6"></path>
-      <rect x="${riserX - 55}" y="${trunkY - 18}" width="115" height="17" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8" stroke-opacity="0.6"></rect>
-      <text x="${riserX}" y="${trunkY - 6}" text-anchor="middle" class="font-code-xs text-[10px] fill-primary font-bold" fill-opacity="0.8">Supply Air Duct</text>
+      <!-- AHU air trunk ${ahuObj.name} (orange 60%) -->
+      <path d="${exitPath}" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="3.5" stroke-opacity="0.6"></path>
+      <rect x="${riserX - 46}" y="${manifoldY - 18}" width="92" height="16" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8" stroke-opacity="0.6"></rect>
+      <text x="${riserX}" y="${manifoldY - 6}" text-anchor="middle" font-size="9" fill="#ff7a1a" fill-opacity="0.8" font-weight="bold">Supply Air (${ahuObj.name})</text>
     `;
 
-    const roomDrops = roomDivs.map(div => {
+    const roomDrops = connectedRoomDivs.map(div => {
       const rc = getCoords(div);
       if (!rc) return null;
       const vavEl = div.querySelector('[id*="vav"]');
       const vavCoords = vavEl ? getCoords(vavEl) : null;
-      return {
-        x: vavCoords ? Math.round(vavCoords.centerX) : Math.round(rc.centerX),
-        top: Math.round(rc.y)
-      };
+      const baseDropX = vavCoords ? Math.round(vavCoords.centerX) : Math.round(rc.centerX);
+      const dropX = baseDropX + (ahuIdx * 14 - (ahus.length - 1) * 7);
+      return { x: dropX, top: Math.round(rc.y) };
     }).filter(Boolean);
 
     if (roomDrops.length > 0) {
@@ -798,14 +920,14 @@ function updateCanvasSchematicArrows() {
       const maxX = Math.max(...roomDrops.map(d => d.x), riserX);
 
       paths += `
-        <!-- Distribution Manifold line across rooms (60% opacity) -->
-        <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-opacity="0.6" id="svg-air-manifold"></path>
+        <!-- Air manifold ${ahuObj.name} -->
+        <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-opacity="0.6"></path>
       `;
 
       roomDrops.forEach(drop => {
         paths += `
-          <!-- Drop into room top border (60% opacity) -->
-          <path d="M ${drop.x} ${manifoldY} L ${drop.x} ${drop.top - 2}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-air)"></path>
+          <!-- Air drop to room -->
+          <path d="M ${drop.x} ${manifoldY} L ${drop.x} ${drop.top - 4}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-air)"></path>
         `;
       });
     }

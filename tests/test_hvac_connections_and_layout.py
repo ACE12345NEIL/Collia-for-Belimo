@@ -219,6 +219,51 @@ class TestHvacConnectionsAndLayout(unittest.TestCase):
         self.client.delete(f"/api/rooms/{rm['id']}")
         self.client.delete(f"/api/floors/{flr['id']}")
 
+    def test_multi_ahu_hydronic_return_and_clean_layout(self):
+        """Verifies that hydronic return lines support multiple AHUs dynamically without hardcoding."""
+        resp_html = self.client.get("/")
+        self.assertEqual(resp_html.status_code, 200)
+        html = resp_html.text
+
+        # Top-left corner BELIMO Collia branding is prominent and easy to read
+        # Logo replaces BELIMO text; alt="BELIMO" keeps stage1 test passing
+        self.assertIn('alt="BELIMO"', html)
+        self.assertIn("belimo_logo.svg", html)
+        self.assertNotIn(">BELIMO<", html)
+        self.assertIn("Collia", html)
+
+        # Green arrow marker for EV->AHU in HTML
+        self.assertIn('id="arrow-ev"', html)
+
+        # Non-overlapping canvas containers
+        # Three-tier plant layout: separate containers per equipment type
+        self.assertIn("plant-tier-chiller", html)
+        self.assertIn("plant-tier-ev", html)
+        self.assertIn("plant-tier-ahu", html)
+        # Zones container pushed down to accommodate taller plant box
+        self.assertIn("top-[480px]", html)
+
+        resp_js = self.client.get("/static/js/app.js")
+        self.assertEqual(resp_js.status_code, 200)
+        js = resp_js.text
+
+        # Dynamic return pairs for all AHUs without hardcoded firstAhuEl/ahus[0]
+        self.assertIn("returnPairs", js)
+        self.assertNotIn("firstAhuEl", js)
+        self.assertNotIn("firstChillerEl", js)
+        self.assertIn("plantBottomMax", js)
+
+        # EV->AHU arrow is green (#16A34A), Chiller->EV is blue (#0284C7)
+        self.assertIn('stroke="#16A34A"', js)
+        self.assertIn('marker-end="url(#arrow-ev)"', js)
+        self.assertIn('stroke="#0284C7"', js)
+        self.assertIn('marker-end="url(#arrow-chw)"', js)
+
+        # 35% opacity for blue and green arrows
+        self.assertIn('stroke-opacity="0.35"', js)
+        self.assertIn('fill-opacity="0.35"', js)
+        self.assertIn('fill-opacity="0.35"', html)
+
 
 if __name__ == "__main__":
     unittest.main()
