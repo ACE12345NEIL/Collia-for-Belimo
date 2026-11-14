@@ -1,0 +1,951 @@
+# BELIMO | COLLIA
+
+# MASTER DEVELOPMENT PROMPT AND TECHNICAL SPECIFICATION
+
+You are the primary software developer responsible for building BELIMO | Collia.
+
+Your responsibility is to implement the application according to the exact project vision, architecture, technology stack, functionality and development sequence described in this document.
+
+You must follow the instructions precisely. Do not independently redesign the project, introduce unnecessary technologies, change the system architecture or implement features outside the defined scope.
+
+Do not treat this as a generic dashboard or CRUD application. This is a building configuration, BMS data processing and Knowledge Graph generation platform.
+
+---
+
+# 1. PROJECT OVERVIEW
+
+Collia is a Building Management System (BMS) configuration, data integration and intelligence platform being developed for BELIMO.
+
+The objective is to allow users to:
+
+1. Create a digital representation of a building.
+2. Configure floors and rooms.
+3. Add room-level HVAC equipment.
+4. Add shared equipment independently of rooms.
+5. Associate CSV filenames with individual equipment instances.
+6. Place all corresponding CSV files in one designated directory.
+7. Process the CSV files automatically using their configured filenames.
+8. Extract equipment information, parameters and relationships.
+9. Generate a Knowledge Graph representing the configured building and its HVAC infrastructure.
+10. Detect anomalies in equipment operation.
+11. Analyse probable causes.
+12. Predict potential equipment failures.
+13. Suggest possible corrective solutions.
+14. Query the configured system and its findings using an offline LLM-based chatbot.
+
+The building configuration created by the user and the actual information extracted from Belimo CSV files are the two primary inputs to this system.
+
+The overall objective is to create a structured digital representation of a building that can support graph-based analysis, reasoning and intelligent querying.
+
+---
+
+# 2. TECHNOLOGY STACK — STRICT REQUIREMENT
+
+Use the following technologies.
+
+## Backend and Application Server
+
+- Python
+- FastAPI
+- Uvicorn
+
+## Frontend
+
+- HTML
+- CSS
+- Vanilla JavaScript
+
+## Data Processing
+
+- Pandas for CSV reading and processing.
+- Python standard libraries for file handling and validation.
+
+## Knowledge Graph
+
+- NetworkX for initial graph construction and manipulation.
+- RDFLib for semantic graph representation.
+- PyVis for interactive graph visualisation.
+- pySHACL for graph validation when required.
+
+## Anomaly Detection
+
+- Python-based rule engine initially.
+- Statistical methods where appropriate.
+- Do not introduce machine learning without an explicit requirement.
+
+## Chatbot — Future Stage
+
+- Ollama for local/offline LLM execution.
+- The model must operate locally.
+- The chatbot must use Collia's processed information and Knowledge Graph as its context.
+
+## Version Control
+
+- Git
+- GitHub
+
+## IMPORTANT TECHNOLOGY RESTRICTIONS
+
+1. Do not introduce SQLite.
+2. Do not introduce PostgreSQL or another database.
+3. Do not introduce a cloud database.
+4. Do not use JSON files for persistent building configuration.
+5. Do not introduce unnecessary frameworks.
+6. Do not introduce cloud-based LLM APIs.
+7. Do not introduce external infrastructure without approval.
+
+FastAPI must serve the HTML frontend and provide the backend API.
+
+The application must use a modular architecture so that future development stages can be integrated without restructuring the entire project.
+
+---
+
+# 3. EXISTING UI DESIGN — HIGHEST PRIORITY
+
+The project directory initially contains an `index.html` file.
+
+This is the original interface exported from Google Stitch.
+
+This file is the approved visual reference for Collia.
+
+Your first responsibility is to inspect and use this file.
+
+## UI requirements
+
+- Preserve the original design as closely as possible.
+- Maintain the existing layout, typography, colours, spacing, visual hierarchy and components.
+- Do not replace the design with a generic dashboard.
+- Do not independently redesign existing screens.
+- Do not remove existing visual elements.
+- Preserve embedded CSS, JavaScript, images and other available assets.
+- Convert static elements into functional controls only where required.
+- Implement additional screens using the same design language.
+- Keep the original index.html backed up as a reference.
+
+If additional assets are required, organise them properly.
+
+The application must be accessible through the FastAPI server.
+
+Use Jinja2 templates if required to serve dynamic HTML.
+
+The frontend should communicate with FastAPI endpoints using JavaScript fetch requests.
+
+Do not introduce a separate frontend framework.
+
+---
+
+# 4. BUILDING CONFIGURATION AND SYSTEM HIERARCHY
+
+The user must be able to digitally configure a building.
+
+The initial structure is:
+
+Building
+|
+\|-- Floors
+\|      |
+\|      |-- Rooms
+\|              |
+\|              |-- RAQS
+\|              |-- VAV
+|
+\|-- Shared Equipment
+|
+\|-- AHU
+\|-- EV
+\|-- Chiller
+
+This represents two distinct equipment categories.
+
+## A. Building and room structure
+
+Users must be able to:
+
+- Create a building.
+- Enter its name and description.
+- Add floors.
+- Enter floor names and descriptions.
+- Add rooms within floors.
+- Enter room names and descriptions.
+- View all configured entities.
+- Navigate between entities.
+
+## B. Room-level equipment
+
+Within individual rooms, users can add:
+
+1. RAQS
+2. VAV
+
+Multiple instances of each equipment type must be supported.
+
+Each equipment instance must contain:
+
+- Unique internal ID.
+- Equipment type.
+- User-defined name.
+- User-defined description.
+- Associated room.
+- CSV filename.
+
+## C. Shared equipment
+
+Users must have a separate section for shared equipment.
+
+They must be able to add:
+
+1. AHU
+2. EV (Energy Valve)
+3. Chiller
+
+These equipment instances must not be forced into individual rooms.
+
+Multiple instances must be supported.
+
+Each shared equipment instance must contain:
+
+- Unique internal ID.
+- Equipment type.
+- User-defined name.
+- User-defined description.
+- CSV filename.
+
+## D. Entity management
+
+All entities must support:
+
+- Create.
+- View.
+- Edit.
+- Delete.
+
+Implement appropriate navigation and breadcrumbs.
+
+Selecting an entity must open its individual detail view.
+
+The user must be able to navigate through buildings, floors, rooms and equipment.
+
+Use unique internal identifiers to maintain consistent references between entities.
+
+Do not use display names as the sole identifiers.
+
+---
+
+# 5. EQUIPMENT TYPES AND PARAMETERS
+
+There are exactly five initial equipment categories.
+
+Do not confuse equipment categories with their parameters.
+
+## 5.1 RAQS
+
+Room-level equipment.
+
+Parameters:
+
+- Temperature
+- Humidity
+- CO₂
+
+## 5.2 VAV
+
+Room-level equipment.
+
+Parameters:
+
+- Airflow
+- Temperature
+- Pressure
+
+## 5.3 EV — Energy Valve
+
+Shared equipment.
+
+Parameters:
+
+- Actuator Position / Valve Opening
+- Flow Rate
+- T1
+- T2
+- Tonnage / Power
+- Control Signal
+
+## 5.4 AHU — Air Handling Unit
+
+Shared equipment.
+
+Parameters:
+
+- Fan Speed
+- Airflow
+- Flow Rate
+- T1
+- T2
+- Tonnage / Power
+- Return Air Temperature
+- Supply Air Temperature
+- Filter Status
+- Heat Recovery Wheel Status
+
+## 5.5 Chiller
+
+Shared equipment.
+
+Parameters:
+
+- Operating Status (ON/OFF)
+- Compressor Speed
+- Chilled Water Supply Temperature
+- Chilled Water Supply Pressure
+- Chilled Water Supply Flow Rate
+- Chilled Water Return Temperature
+- Chilled Water Return Pressure
+- Chilled Water Return Flow Rate
+
+## Parameter handling
+
+These parameters are the initial reference model.
+
+Important requirements:
+
+- Do not assume that every CSV contains every listed parameter.
+- Do not fabricate missing values.
+- Do not hardcode CSV column mappings before inspecting actual Belimo CSV files.
+- Maintain a distinction between configured parameter definitions and actual extracted readings.
+- Preserve the original CSV column names and units.
+- Support different CSV structures through modular parsing logic.
+- Report parameters that cannot be mapped.
+
+Do not add a separate device parameters section to the initial UI. The user should primarily configure equipment through its type, name, description and CSV association.
+
+---
+
+# 6. CSV FILE MANAGEMENT — CORE FUNCTIONALITY
+
+CSV integration is one of the most important features of Collia.
+
+The user should not have to upload CSV files individually through the application.
+
+Instead, implement a folder-based workflow.
+
+## 6.1 Intended workflow
+
+1. The user creates the building configuration.
+2. The user creates floors and rooms.
+3. The user adds RAQS and VAV within rooms.
+4. The user adds AHUs, EVs and Chillers separately.
+5. During equipment creation or editing, the user enters the associated CSV filename.
+6. The user manually places all CSV files inside a designated directory.
+7. Collia locates the CSV files using their configured filenames.
+8. FastAPI reads and processes the corresponding files.
+9. The system extracts relevant information.
+10. Extracted information is mapped to the correct configured equipment.
+11. The processed data becomes available for Knowledge Graph generation.
+
+## 6.2 CSV directory
+
+Use:
+
+data/csv/
+
+All source CSV files must be stored here.
+
+Example:
+
+data/
+csv/
+RAQS_101.csv
+VAV_101.csv
+AHU_01.csv
+EV_01.csv
+Chiller_01.csv
+
+The filenames above are illustrative only.
+
+Do not assume that these are actual Belimo filenames.
+
+## 6.3 Filename association
+
+During equipment creation, provide a field for:
+
+CSV Filename
+
+Example:
+
+Equipment Type: RAQS
+Name: Room 101 Air Quality Sensor
+Description: Monitors room temperature, humidity and CO₂.
+CSV Filename: RAQS_101.csv
+
+The backend must use this filename to locate:
+
+data/csv/RAQS_101.csv
+
+The application should support the following:
+
+- Verify whether the filename exists.
+- Display whether the file is available.
+- Display whether it has been processed.
+- Allow users to update the filename.
+- Allow users to rescan the CSV directory.
+- Allow users to process the files.
+- Report missing files.
+- Report invalid CSV formats.
+- Report processing errors.
+
+Use safe file-path handling. Filenames must not be allowed to escape the designated CSV directory.
+
+Do not silently substitute a different file when a filename is missing.
+
+## 6.4 CSV processing
+
+Use Pandas for processing.
+
+The system should:
+
+1. Locate the configured file.
+2. Read its contents.
+3. Inspect column headers.
+4. Identify available parameters.
+5. Extract relevant readings.
+6. Identify timestamps where available.
+7. Preserve original column names.
+8. Identify missing or unrecognised columns.
+9. Validate the extracted information.
+10. Associate the extracted information with the configured equipment.
+
+CSV parsing must be modular.
+
+Different equipment categories may require different mapping rules.
+
+Do not assume all files follow the same structure.
+
+Do not modify the original source CSV files.
+
+## 6.5 Configuration persistence
+
+There is no database in the initial architecture.
+
+However, building configurations must persist after restarting the application.
+
+Implement file-based persistence using a structured, versioned CSV-based configuration approach.
+
+The internal configuration format may use multiple CSV files to represent entities and relationships.
+
+Do not use JSON files for persistent configuration.
+
+Separate:
+
+- User-defined configuration.
+- Original source CSV files.
+- Processed information.
+- Generated graph artefacts.
+
+Ensure that configuration updates do not overwrite original source data.
+
+---
+
+# 7. ENTITY RELATIONSHIPS AND SYSTEM MODELLING
+
+The building hierarchy and the HVAC equipment relationships are not necessarily identical.
+
+For example:
+
+- A building contains multiple floors.
+- A floor contains multiple rooms.
+- A room may contain RAQS and VAV equipment.
+- An AHU may serve multiple rooms.
+- A Chiller may supply multiple AHUs.
+- An EV may be associated with relevant HVAC equipment.
+
+These examples illustrate possible relationships and must not be treated as automatically established facts.
+
+The system must support relationships beyond simple parent-child containment.
+
+Separate:
+
+1. Structural relationships: building, floor and room containment.
+2. Equipment relationships: serves, supplies, controls, measures or connects to.
+
+Where the user defines a relationship, preserve it.
+
+Where CSV data provides evidence for a relationship, identify and validate it.
+
+Do not invent relationships based only on equipment names or assumptions.
+
+Provide a modular relationship model so additional relationship types can be introduced later.
+
+---
+
+# 8. KNOWLEDGE GRAPH GENERATION
+
+The configured building structure and processed CSV information must jointly form the Knowledge Graph.
+
+Use:
+
+- NetworkX for graph construction and manipulation.
+- RDFLib for semantic graph representation.
+- PyVis for graph visualisation.
+- SHACL / pySHACL for validation when appropriate.
+
+## 8.1 Graph nodes
+
+Initial node categories:
+
+- Building
+- Floor
+- Room
+- RAQS
+- VAV
+- AHU
+- EV
+- Chiller
+
+Additional nodes or properties may be introduced when supported by actual data.
+
+## 8.2 Graph relationships
+
+Represent relationships such as:
+
+- Building CONTAINS Floor.
+- Floor CONTAINS Room.
+- Room HAS_EQUIPMENT RAQS.
+- Room HAS_EQUIPMENT VAV.
+- AHU SERVES Room.
+- Chiller SUPPLIES AHU.
+- EV CONNECTED_TO relevant equipment.
+
+These are illustrative relationship types. Only create relationships supported by the configuration or validated source information.
+
+## 8.3 Graph properties
+
+Store relevant information as node properties or associated observations.
+
+Examples:
+
+- Equipment name.
+- Equipment description.
+- Equipment category.
+- Source CSV filename.
+- Parameter name.
+- Parameter value.
+- Unit of measurement.
+- Timestamp.
+
+Keep time-series readings distinguishable from static equipment properties.
+
+## 8.4 Graph validation
+
+The graph must be checked for:
+
+- Missing entities.
+- Invalid relationships.
+- Duplicate identifiers.
+- Missing references.
+- Inconsistent equipment associations.
+- Unsupported relationship types.
+
+The graph must be traceable to its source configuration and CSV data.
+
+---
+
+# 9. ANOMALY DETECTION
+
+This stage begins after CSV extraction and Knowledge Graph generation are functioning correctly.
+
+Initially implement rule-based anomaly detection.
+
+Examples:
+
+Example 1:
+A room temperature reading is significantly higher than its configured setpoint.
+
+Example 2:
+An AHU damper command is 100%, but its feedback position is 20%, where both readings are available.
+
+Example 3:
+An equipment operating parameter is outside its configured acceptable range.
+
+Requirements:
+
+- Define rules explicitly.
+- Support configurable thresholds.
+- Consider measurement units.
+- Handle missing readings.
+- Distinguish abnormal readings from missing data.
+- Record the source CSV and relevant timestamp.
+- Associate anomalies with the relevant equipment.
+- Use Knowledge Graph relationships to identify connected equipment.
+
+Do not introduce machine learning at this stage.
+
+---
+
+# 10. PROBABLE CAUSE ANALYSIS
+
+After anomaly detection, implement probable cause analysis.
+
+The system should:
+
+1. Identify the equipment where the anomaly occurred.
+2. Examine its relevant parameters.
+3. Inspect associated equipment.
+4. Traverse relevant Knowledge Graph relationships.
+5. Examine supporting CSV readings.
+6. Identify possible contributing factors.
+7. Present probable causes with supporting evidence.
+
+Clearly distinguish:
+
+- Directly observed facts.
+- Detected anomalies.
+- Inferred probable causes.
+
+Do not present an unsupported inference as a confirmed equipment failure.
+
+---
+
+# 11. FAILURE PREDICTION
+
+Introduce failure prediction only after sufficient data and validation are available.
+
+The objective is to identify possible future equipment failures or abnormal operating conditions.
+
+Use historical readings and relevant equipment relationships.
+
+Do not claim predictive accuracy without validation.
+
+Keep the prediction module separate from basic anomaly detection.
+
+---
+
+# 12. SUGGESTED SOLUTIONS
+
+For each detected anomaly and probable cause, provide possible corrective suggestions.
+
+Each suggestion should include:
+
+- Associated anomaly.
+- Probable cause.
+- Supporting evidence.
+- Suggested corrective action.
+- Relevant equipment.
+
+Suggestions must be presented as recommendations, not automatic equipment commands.
+
+---
+
+# 13. OFFLINE LLM CHATBOT
+
+The final major feature is an offline LLM-based chatbot.
+
+Use Ollama for local inference.
+
+The chatbot should provide a natural-language interface to the configured system.
+
+Users should eventually be able to ask questions such as:
+
+- What equipment is present on Floor 2?
+- Which rooms are served by AHU 01?
+- What anomalies were detected today?
+- Why was this equipment flagged?
+- What are the possible causes of the AHU anomaly?
+- What corrective actions are suggested?
+- Show me the relationship between the Chiller and the connected AHUs.
+
+The chatbot must retrieve information from Collia's configuration, processed CSV information, Knowledge Graph and analysis results.
+
+Use retrieval and relevant graph context rather than relying entirely on the LLM's pretrained knowledge.
+
+The chatbot must function without requiring an internet connection.
+
+Do not implement this feature during the initial stages.
+
+---
+
+# 14. STANDARDS AND TECHNICAL REFERENCES
+
+Use these standards progressively.
+
+Brick Schema:
+Reference for building equipment, systems and point semantics.
+
+RDF/RDFS:
+Knowledge Graph representation.
+
+OWL:
+Semantic classes, properties and relationships.
+
+SHACL:
+Graph validation.
+
+Haystack:
+BMS tagging conventions and interoperability.
+
+ASHRAE 223:
+Semantic modelling of building systems.
+
+BACnet / BACnet-SC:
+Building automation communication and integration.
+
+Do not attempt to implement all standards immediately.
+
+First establish a clean internal entity and relationship model.
+
+Do not introduce standards merely for the sake of using them. Each implementation must serve a defined requirement.
+
+---
+
+# 15. PROJECT DIRECTORY STRUCTURE
+
+Use a modular directory structure similar to the following:
+
+Collia/
+│
+├── index.html
+│
+├── frontend/
+│   ├── templates/
+│   ├── static/
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── assets/
+│   │
+│   └── original/
+│       └── index.html
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   │
+│   │   ├── api/
+│   │   │
+│   │   ├── models/
+│   │   │
+│   │   ├── schemas/
+│   │   │
+│   │   ├── services/
+│   │   │
+│   │   ├── csv_processing/
+│   │   │
+│   │   ├── knowledge_graph/
+│   │   │
+│   │   ├── anomaly_detection/
+│   │   │
+│   │   └── chatbot/
+│   │
+│   └── requirements.txt
+│
+├── data/
+│   ├── csv/
+│   ├── configuration/
+│   ├── processed/
+│   └── graph/
+│
+├── tests/
+│
+├── docs/
+│
+├── .gitignore
+└── README.md
+
+This is the proposed structure.
+
+You may organise individual modules internally, but do not change the overall architectural principles.
+
+Do not create empty modules for future features unless required.
+
+---
+
+# 16. DEVELOPMENT SEQUENCE — STRICT EXECUTION ORDER
+
+Implement the project in the following stages.
+
+Do not skip stages or implement future functionality prematurely.
+
+## STAGE 1 — PROJECT SETUP AND UI IMPLEMENTATION
+
+This is the first task.
+
+1. Inspect the provided index.html.
+2. Analyse its HTML, CSS, JavaScript and available assets.
+3. Preserve the original design.
+4. Set up the FastAPI application.
+5. Configure Uvicorn.
+6. Serve the HTML interface through FastAPI.
+7. Organise static assets.
+8. Verify that the application opens correctly in a browser.
+9. Ensure that the design is visually consistent with the original Stitch export.
+
+At this stage, focus on the interface and application setup.
+
+Do not implement the complete backend functionality.
+
+## STAGE 2 — ENTITY MODEL AND CONFIGURATION PERSISTENCE
+
+1. Implement unique entity identifiers.
+2. Define building, floor and room entities.
+3. Define the five equipment categories.
+4. Establish the distinction between room-level and shared equipment.
+5. Define equipment properties.
+6. Define structural and equipment relationships.
+7. Implement CSV-based configuration persistence.
+8. Test configuration recovery after restarting the application.
+
+## STAGE 3 — USER INTERFACE FUNCTIONALITY
+
+1. Implement building creation.
+2. Implement floor creation.
+3. Implement room creation.
+4. Implement RAQS creation.
+5. Implement VAV creation.
+6. Implement shared AHU creation.
+7. Implement shared EV creation.
+8. Implement shared Chiller creation.
+9. Implement custom names and descriptions.
+10. Implement CSV filename fields.
+11. Implement individual entity detail views.
+12. Implement navigation.
+13. Implement editing and deletion.
+
+## STAGE 4 — CSV FOLDER INTEGRATION
+
+1. Establish data/csv/.
+2. Implement filename lookup.
+3. Implement file existence checks.
+4. Implement directory scanning.
+5. Implement CSV reading using Pandas.
+6. Inspect CSV headers and data.
+7. Report missing and invalid files.
+8. Implement rescanning.
+9. Associate processed information with configured equipment.
+
+## STAGE 5 — CSV EXTRACTION AND DATA VALIDATION
+
+1. Identify available parameters.
+2. Identify timestamps.
+3. Map available columns.
+4. Handle different CSV structures.
+5. Validate extracted readings.
+6. Identify missing or inconsistent information.
+7. Preserve source references.
+8. Produce structured processed information.
+
+## STAGE 6 — KNOWLEDGE GRAPH GENERATION
+
+1. Construct graph nodes.
+2. Construct graph edges.
+3. Represent equipment properties.
+4. Represent structural relationships.
+5. Represent equipment relationships.
+6. Incorporate CSV-derived information.
+7. Validate graph consistency.
+8. Implement interactive graph visualisation.
+
+## STAGE 7 — ANOMALY DETECTION
+
+1. Define initial detection rules.
+2. Define acceptable thresholds.
+3. Analyse available readings.
+4. Detect anomalies.
+5. Associate anomalies with equipment.
+6. Connect anomalies to relevant graph relationships.
+7. Present results with supporting data.
+
+## STAGE 8 — PROBABLE CAUSE ANALYSIS AND FAILURE PREDICTION
+
+1. Investigate related equipment.
+2. Identify possible causes.
+3. Retrieve supporting evidence.
+4. Generate explainable probable causes.
+5. Introduce validated failure prediction methods.
+6. Present results clearly.
+
+## STAGE 9 — SUGGESTED SOLUTIONS AND OFFLINE CHATBOT
+
+1. Generate corrective suggestions.
+2. Integrate Ollama.
+3. Connect the chatbot to processed information.
+4. Provide Knowledge Graph context.
+5. Support natural-language querying.
+6. Ensure local/offline operation.
+
+---
+
+# 17. DEVELOPMENT AND EXECUTION RULES
+
+These instructions are mandatory.
+
+1. Follow the development sequence exactly.
+2. Complete and test the current stage before moving to the next.
+3. Do not implement all stages in a single operation.
+4. Do not independently change the technology stack.
+5. Do not introduce a database.
+6. Do not introduce React or Vite.
+7. Do not introduce JSON-based persistent configuration.
+8. Do not fabricate Belimo CSV data.
+9. Do not assume CSV column structures.
+10. Do not invent equipment relationships.
+11. Do not redesign the provided Stitch interface.
+12. Do not remove existing UI sections without approval.
+13. Keep backend modules independent and reusable.
+14. Maintain clear separation between configuration, source data, processed data and graph artefacts.
+15. Test every major functionality.
+16. Maintain readable and documented code.
+17. Update requirements.txt when dependencies change.
+18. Maintain a useful README.md.
+19. Use Git commits after completing meaningful development milestones.
+20. Never commit confidential Belimo information, real source CSVs, credentials or private data.
+21. Do not overwrite original source CSV files.
+22. Do not silently ignore errors.
+23. Ask for clarification before making an architectural change.
+24. Do not implement future-stage functionality early merely to make the application appear complete.
+
+If a requirement cannot be implemented as described, explain the technical limitation and propose the smallest necessary adjustment. Do not make the adjustment without approval.
+
+---
+
+# 18. IMMEDIATE EXECUTION INSTRUCTION
+
+BEGIN WITH STAGE 1 ONLY.
+
+Your immediate task is:
+
+1. Inspect the project directory.
+2. Locate and inspect the original index.html.
+3. Analyse the existing UI design.
+4. Set up FastAPI and Uvicorn.
+5. Integrate the existing HTML into FastAPI.
+6. Preserve all original design elements.
+7. Organise the project structure.
+8. Make the application accessible through the local FastAPI server.
+9. Verify that the application runs correctly.
+
+Do not implement the building configuration, equipment creation, CSV processing, Knowledge Graph, anomaly detection or chatbot yet.
+
+First complete Stage 1.
+
+After implementation, report:
+
+- Files and folders created.
+- Dependencies installed.
+- How to start the application.
+- Local URL.
+- What was successfully tested.
+- Any outstanding issues.
+
+Wait for explicit approval before proceeding to Stage 2.
+
+---
+
+# FINAL PROJECT OBJECTIVE
+
+Build BELIMO | Collia as a functional building configuration and intelligence platform.
+
+The user defines the building structure and equipment through the UI, associates CSV filenames with equipment, and places all source CSVs into a single designated folder.
+
+Collia processes those files, combines the extracted information with the user-defined system configuration, generates a Knowledge Graph and progressively introduces anomaly detection, probable cause analysis, failure prediction, corrective suggestions and an offline LLM chatbot.
+
+Follow this specification as the authoritative project blueprint.
+
+Do not deviate from it without explicit approval.

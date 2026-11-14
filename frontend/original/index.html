@@ -1,0 +1,457 @@
+<!DOCTYPE html><html lang="en"><head></head><body class="bg-surface-canvas font-body-md text-body-md text-on-surface antialiased selection:bg-primary selection:text-on-primary"><style id="orange-palette-override">:root { --primary-orange: #ff7a1a; --primary-orange-hover: #ff8c33; --primary-orange-dark: #ea580c; } .bg-primary { background-color: #ff7a1a !important; } .hover\:bg-accent-hover:hover { background-color: #ff8c33 !important; } .text-primary { color: #ff7a1a !important; } .border-primary { border-color: #ff7a1a !important; } .border-primary\/80 { border-color: rgba(255, 122, 26, 0.8) !important; } .ring-primary\/20 { --tw-ring-color: rgba(255, 122, 26, 0.25) !important; } .bg-primary\/5 { background-color: rgba(255, 122, 26, 0.08) !important; } .fill-primary { fill: #ff7a1a !important; } .selection\:bg-primary::selection { background-color: #ff7a1a !important; }</style><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"surface-container-low":"#f6f3f2","surface-bright":"#fcf9f8","primary-fixed":"#ffdbcb","on-tertiary-container":"#fefcfc","surface-base":"#FFFFFF","tertiary-container":"#757474","surface":"#fcf9f8","surface-subtle":"#F5F5F5","on-secondary":"#ffffff","background":"#fcf9f8","on-surface-variant":"#584237","outline-variant":"#e0c0b1","on-secondary-fixed":"#1b1c1c","on-tertiary":"#ffffff","surface-dim":"#dcd9d9","error":"#ba1a1a","surface-variant":"#e5e2e1","on-error-container":"#93000a","outline":"#8c7164","tertiary":"#5c5c5c","primary-container":"#c15400","on-secondary-container":"#656464","accent-hover":"#CC5800","surface-container-highest":"#e5e2e1","status-error":"#DC2626","on-tertiary-fixed-variant":"#464747","primary":"#9a4100","on-error":"#ffffff","on-primary-fixed":"#341100","status-success":"#16A34A","tertiary-fixed-dim":"#c7c6c6","surface-tint":"#9e4300","secondary-fixed-dim":"#c8c6c6","secondary-container":"#e4e2e1","surface-container-lowest":"#ffffff","on-background":"#1b1c1c","primary-fixed-dim":"#ffb690","on-surface":"#1b1c1c","inverse-surface":"#303030","surface-canvas":"#FAFAFA","secondary":"#5f5e5e","status-warning":"#D97706","on-secondary-fixed-variant":"#474747","border-subtle":"#D4D4D4","on-primary":"#ffffff","on-primary-fixed-variant":"#783100","tertiary-fixed":"#e4e2e2","surface-container":"#f0eded","inverse-primary":"#ffb690","error-container":"#ffdad6","on-primary-container":"#fffbff","inverse-on-surface":"#f3f0ef","secondary-fixed":"#e4e2e1","border-strong":"#AAAAAA","on-tertiary-fixed":"#1b1c1c","surface-container-high":"#eae7e7"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"2rem","space-md":"1rem","gutter":"1rem","gutter-desktop":"1.5rem","margin-desktop":"2rem","space-xs":"0.25rem","space-lg":"1.5rem","margin":"1rem","space-sm":"0.5rem"},"fontFamily":{"label-sm":["Inter"],"code-xs":["JetBrains Mono"],"body-md":["Inter"],"code-sm":["JetBrains Mono"],"label-md":["Inter"],"headline-md":["Inter"],"headline-lg":["Inter"],"body-lg":["Inter"],"headline-sm":["Inter"],"body-sm":["Inter"]},"fontSize":{"label-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"code-xs":["12px",{"lineHeight":"16px","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"code-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"label-md":["14px",{"lineHeight":"20px","fontWeight":"500"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"headline-lg":["28px",{"lineHeight":"36px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"22px","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}]}}}};</script><aside class="fixed left-0 top-0 h-screen w-64 bg-surface-base border-r border-border-subtle z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-14 px-gutter flex items-center gap-space-sm border-b border-border-subtle"><div class="w-2.5 h-2.5 bg-primary rounded-none"></div><span class="font-headline-sm text-headline-sm tracking-tight text-on-surface uppercase">BELIMO</span><span class="text-border-strong font-body-sm text-body-sm">|</span><span class="font-label-md text-label-md tracking-wider text-secondary uppercase">Collia</span></div><div class="px-gutter pt-space-md pb-space-xs"></div><nav class="flex flex-col gap-0.5 px-space-xs" data-active-classes="bg-surface-subtle text-primary border-r-2 border-primary font-label-md text-label-md"><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-none transition-colors bg-surface-subtle text-primary border-r-2 border-primary font-label-md text-label-md" data-path="system-builder" href="#"><span class="material-symbols-outlined text-[18px]">account_tree</span><span class="">System Builder</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-none text-secondary hover:bg-surface-subtle hover:text-on-surface transition-colors font-body-md text-body-md" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[18px]">grid_view</span><span class="">Dashboard</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-none text-secondary hover:bg-surface-subtle hover:text-on-surface transition-colors font-body-md text-body-md" data-path="knowledge-graph" href="#"><span class="material-symbols-outlined text-[18px]">hub</span><span class="">Knowledge Graph</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-none text-secondary hover:bg-surface-subtle hover:text-on-surface transition-colors font-body-md text-body-md" data-path="anomalies" href="#"><span class="material-symbols-outlined text-[18px]">warning</span><span class="">Anomalies</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-none text-secondary hover:bg-surface-subtle hover:text-on-surface transition-colors font-body-md text-body-md" data-path="chatbot" href="#"><span class="material-symbols-outlined text-[18px]">forum</span><span class="">Chatbot</span></a></nav></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-14 bg-surface-base border-b border-border-subtle z-40 flex items-center justify-between px-gutter-desktop"><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs text-secondary font-code-xs text-code-xs"><span class="text-on-surface font-label-sm text-label-sm">FACILITY:</span><span class="">Campus North — Building 04</span></div></div><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs border border-border-subtle px-space-sm py-1 bg-surface-canvas text-secondary font-code-xs text-code-xs"></div><div class="h-4 w-px bg-border-subtle"></div></div></header><main class="relative pt-14 min-h-screen bg-surface-canvas"><div class="flex flex-col w-full">
+<!-- System Builder Header -->
+<div class="w-full bg-surface-base px-gutter-desktop py-space-md border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<h1 class="font-headline-lg text-headline-lg tracking-tight text-on-surface">System Builder</h1>
+
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Create and configure your BMS system.</p>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="px-space-md py-1.5 rounded-sm bg-surface-base border border-border-strong text-on-surface hover:bg-surface-subtle transition-colors font-label-md text-label-md flex items-center gap-1.5" id="btn-reset">
+<span class="material-symbols-outlined text-[16px] text-secondary">restart_alt</span>
+        Reset
+      </button>
+<button class="px-space-lg py-1.5 rounded-sm bg-primary hover:bg-accent-hover text-on-primary font-label-md text-label-md transition-colors flex items-center gap-1.5 shadow-sm active:bg-on-primary-fixed-variant" id="btn-save">
+<span class="material-symbols-outlined text-[16px]">save</span>
+        Save System
+      </button>
+</div>
+</div>
+<!-- Main Split Layout (Left Panel & Expanded Canvas) -->
+<div class="w-full flex flex-1 min-h-[calc(100vh-210px)] bg-surface-canvas overflow-hidden">
+<!-- LEFT PANEL: System Structure Hierarchy -->
+<aside class="w-[300px] shrink-0 bg-surface-base border-r border-border-subtle flex flex-col justify-between overflow-y-auto select-none">
+<div class="flex flex-col p-gutter gap-space-lg">
+<!-- ROOMS SECTION -->
+<div class="flex flex-col">
+<div class="flex items-center justify-between pb-space-xs border-b border-border-subtle mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold tracking-tight uppercase">Rooms</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-subtle font-code-xs text-code-xs text-secondary border border-border-subtle" id="room-counter-badge">3 Rooms</span>
+</div>
+<button class="w-6 h-6 rounded flex items-center justify-center hover:bg-surface-subtle text-secondary hover:text-primary transition-colors" id="btn-add-room" title="Add Room">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<!-- Rooms Accordion List -->
+<div class="flex flex-col gap-space-xs" id="rooms-tree">
+<!-- Room 101 -->
+<div class="rounded border border-border-subtle bg-surface-base overflow-hidden" data-room-id="101">
+<div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('101')">
+<div class="flex items-center gap-1 min-w-0">
+<span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-101">chevron_right</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium truncate">101 - Conf. North</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error hover:bg-surface-base rounded" onclick="event.stopPropagation(); removeNode('room', '101')" title="Remove Room">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+</div>
+</div>
+<!-- Nested Devices -->
+<div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-101"><div class="flex items-center justify-between px-2 py-1 bg-surface-canvas rounded border border-border-subtle/60 hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectCanvasElement('node-raqs-101')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">air</span><span class="font-code-xs text-code-xs text-on-surface truncate">RAQS (Air Quality)</span></div><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('device', 'raqs-101')"><span class="material-symbols-outlined text-[13px]">close</span></button></div><div class="flex items-center justify-between px-2 py-1 bg-surface-canvas rounded border border-primary/80 bg-primary/5 group cursor-pointer" onclick="selectCanvasElement('node-vav-101')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">hvac</span><span class="font-code-xs text-code-xs text-primary font-medium truncate">VAV Actuator</span></div><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('device', 'vav-101')"><span class="material-symbols-outlined text-[13px]">close</span></button></div><button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="addDeviceToRoom('101')"><span class="material-symbols-outlined text-[13px]">add</span> Add Device</button></div>
+</div>
+<!-- Room 102 -->
+<div class="rounded border border-border-subtle bg-surface-base overflow-hidden" data-room-id="102">
+<div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('102')">
+<div class="flex items-center gap-1 min-w-0">
+<span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-102">chevron_right</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium truncate">102 - Open Work</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error hover:bg-surface-base rounded" onclick="event.stopPropagation(); removeNode('room', '102')" title="Remove Room">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+</div>
+</div>
+<div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-102"><div class="flex items-center justify-between px-2 py-1 bg-surface-canvas rounded border border-border-subtle/60 hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectCanvasElement('node-raqs-102')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">air</span><span class="font-code-xs text-code-xs text-on-surface truncate">RAQS (Air Quality)</span></div><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('device', 'raqs-102')"><span class="material-symbols-outlined text-[13px]">close</span></button></div><div class="flex items-center justify-between px-2 py-1 bg-surface-canvas rounded border border-border-subtle/60 hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectCanvasElement('node-vav-102')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">hvac</span><span class="font-code-xs text-code-xs text-on-surface truncate">VAV Actuator</span></div><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('device', 'vav-102')"><span class="material-symbols-outlined text-[13px]">close</span></button></div><button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="addDeviceToRoom('102')"><span class="material-symbols-outlined text-[13px]">add</span> Add Device</button></div>
+</div>
+<!-- Room 103 -->
+<div class="rounded border border-border-subtle bg-surface-base overflow-hidden" data-room-id="103">
+<div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('103')">
+<div class="flex items-center gap-1 min-w-0">
+<span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-103">chevron_right</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium truncate">103 - Exec. Office</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error hover:bg-surface-base rounded" onclick="event.stopPropagation(); removeNode('room', '103')" title="Remove Room">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+</div>
+</div>
+<div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-103"><div class="flex items-center justify-between px-2 py-1 bg-surface-canvas rounded border border-border-subtle/60 hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectCanvasElement('node-raqs-103')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">air</span><span class="font-code-xs text-code-xs text-on-surface truncate">RAQS (Air Quality)</span></div><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('device', 'raqs-103')"><span class="material-symbols-outlined text-[13px]">close</span></button></div><div class="flex items-center justify-between px-2 py-1 bg-surface-canvas rounded border border-border-subtle/60 hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectCanvasElement('node-vav-103')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">hvac</span><span class="font-code-xs text-code-xs text-on-surface truncate">VAV Actuator</span></div><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('device', 'vav-103')"><span class="material-symbols-outlined text-[13px]">close</span></button></div><button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="addDeviceToRoom('103')"><span class="material-symbols-outlined text-[13px]">add</span> Add Device</button></div>
+</div>
+</div>
+</div>
+<!-- EQUIPMENT SECTION -->
+<div class="flex flex-col">
+<div class="flex items-center justify-between pb-space-xs border-b border-border-subtle mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold tracking-tight uppercase">Equipment</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-subtle font-code-xs text-code-xs text-secondary border border-border-subtle">3 Plant Units</span>
+</div>
+<button class="w-6 h-6 rounded flex items-center justify-center hover:bg-surface-subtle text-secondary hover:text-primary transition-colors" id="btn-add-eq" title="Add Plant Equipment">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div class="flex flex-col gap-1.5">
+<!-- AHU -->
+<div class="flex items-center justify-between px-2.5 py-1.5 rounded border border-border-subtle bg-surface-canvas hover:border-border-strong cursor-pointer group transition-colors" onclick="selectCanvasElement('node-ahu-01')">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary group-hover:text-primary transition-colors">mode_fan</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-medium">AHU-01</span>
+<span class="font-code-xs text-code-xs text-secondary">Air Handling Unit</span>
+</div>
+</div>
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('equipment', 'ahu-01')">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+</div>
+<!-- Energy Valve -->
+<div class="flex items-center justify-between px-2.5 py-1.5 rounded border border-border-subtle bg-surface-canvas hover:border-border-strong cursor-pointer group transition-colors" onclick="selectCanvasElement('node-ev-01')">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">speed</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-medium">EV-01 (Energy Valve)</span>
+<span class="font-code-xs text-code-xs text-secondary">Ultrasonic BTU Meter</span>
+</div>
+</div>
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('equipment', 'ev-01')">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+</div>
+<!-- Chiller -->
+<div class="flex items-center justify-between px-2.5 py-1.5 rounded border border-border-subtle bg-surface-canvas hover:border-border-strong cursor-pointer group transition-colors" onclick="selectCanvasElement('node-chiller-01')">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary group-hover:text-primary transition-colors">ac_unit</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Chiller-01</span>
+<span class="font-code-xs text-code-xs text-secondary">Central Chilled Loop</span>
+</div>
+</div>
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); removeNode('equipment', 'chiller-01')">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Left Sidebar Footer Status -->
+<div class="p-3 bg-surface-subtle/60 border-t border-border-subtle font-code-xs text-code-xs text-secondary flex items-center justify-between">
+<span class="uppercase tracking-wider">Topology Model</span>
+
+</div>
+</aside>
+<!-- CENTRAL PANEL: Full Breadth System Layout Canvas -->
+<main class="flex-1 flex flex-col relative overflow-hidden bg-surface-canvas">
+<!-- Canvas Top Control Bar -->
+
+<!-- Schematic Graphical Canvas Viewport -->
+<div class="w-full bg-surface-base border-b border-border-subtle px-gutter-desktop h-12 flex items-center justify-between select-none z-10 shrink-0"><div class="flex items-center gap-space-md h-full"><button id="tab-layout" onclick="switchCanvasView('layout')" class="h-full border-b-2 font-label-md text-label-md flex items-center gap-1.5 px-1 border-transparent text-secondary"><span class="material-symbols-outlined text-[18px]">schema</span> System Layout</button><button id="tab-graph" onclick="switchCanvasView('graph')" class="h-full border-b-2 border-transparent text-secondary hover:text-on-surface font-label-md text-label-md flex items-center gap-1.5 px-1"><span class="material-symbols-outlined text-[18px]">hub</span> Graph View</button></div><div class="flex items-center gap-1 bg-surface-canvas border border-border-subtle rounded p-0.5"><button onclick="zoomCanvas(0.1)" class="w-7 h-7 flex items-center justify-center text-secondary hover:text-on-surface hover:bg-surface-subtle rounded transition-colors" title="Zoom In"><span class="material-symbols-outlined text-[16px]">zoom_in</span></button><button onclick="zoomCanvas(-0.1)" class="w-7 h-7 flex items-center justify-center text-secondary hover:text-on-surface hover:bg-surface-subtle rounded transition-colors" title="Zoom Out"><span class="material-symbols-outlined text-[16px]">zoom_out</span></button><button onclick="fitCanvas()" class="w-7 h-7 flex items-center justify-center text-secondary hover:text-on-surface hover:bg-surface-subtle rounded transition-colors" title="Fit Canvas"><span class="material-symbols-outlined text-[16px]">fit_screen</span></button><button onclick="resetZoom()" class="px-2 h-7 text-secondary hover:text-on-surface hover:bg-surface-subtle rounded font-code-xs text-code-xs transition-colors" title="Reset Zoom">100%</button></div></div><div class="flex-1 relative overflow-auto p-8 cursor-grab active:cursor-grabbing select-none" id="canvas-viewport" style="background-image: radial-gradient(circle, #D4D4D4 1px, transparent 1px); background-size: 20px 20px;">
+<!-- Canvas Transformation Wrap -->
+<div class="relative min-w-[1080px] h-[520px] transition-transform duration-100 origin-top-left" id="canvas-workspace">
+<!-- SVG Orthogonal Schematic Interconnect Duct & Hydronic System -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="hydronicChilled" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#0284C7"></stop>
+<stop offset="100%" stop-color="#0284C7"></stop>
+</linearGradient>
+<linearGradient id="hydronicReturn" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#DC2626"></stop>
+<stop offset="100%" stop-color="#DC2626"></stop>
+</linearGradient>
+<marker id="arrow-chw" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+<path d="M0,0 L6,3 L0,6 Z" fill="#0284C7"></path>
+</marker>
+<marker id="arrow-air" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+<path d="M0,0 L6,3 L0,6 Z" fill="#ff7a1a"></path>
+</marker>
+<marker id="arrow-signal" markerHeight="5" markerWidth="5" orient="auto" refX="4" refY="2.5">
+<path d="M0,0 L5,2.5 L0,5 Z" fill="#5c5c5c"></path>
+</marker>
+</defs>
+<!-- 1. HYDRONIC LOOP: Chiller-01 (x: 100, y: 120) -> EV-01 (x: 270, y: 120) -> AHU-01 (x: 440, y: 120) -->
+<!-- Chiller supply to EV -->
+<path d="M 180 120 L 260 120" fill="none" marker-end="url(#arrow-chw)" stroke="#0284C7" stroke-width="3"></path>
+<!-- EV to AHU coil -->
+<path d="M 380 120 L 460 120" fill="none" marker-end="url(#arrow-chw)" stroke="#0284C7" stroke-width="3"></path>
+<!-- Return line back from AHU to Chiller -->
+<path d="M 460 145 L 380 145 L 260 145 L 180 145" fill="none" stroke="#64748B" stroke-dasharray="4,4" stroke-width="2"></path>
+<text class="font-code-xs text-[10px] fill-secondary" text-anchor="middle" x="300" y="160">Hydronic Return 12.8°C</text>
+<text class="font-code-xs text-[10px] fill-[#0284C7] font-semibold" text-anchor="middle" x="220" y="112">CHW 6.1°C</text>
+<!-- 2. AIR SUPPLY TRUNK: AHU-01 (x: 580, y: 120) -> Main Header -> Room VAVs -->
+<!-- Main Trunk heading right -->
+<path d="M 590 120 L 710 120 L 710 230" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="4"></path>
+<text class="font-code-xs text-[11px] fill-primary font-bold" x="650" y="112">Supply Air Duct 820 CFM</text>
+<!-- Distribution Manifold line across 3 rooms -->
+<!-- Room 101 VAV input: x: 190, y: 340 -->
+<!-- Room 102 VAV input: x: 530, y: 340 -->
+<!-- Room 103 VAV input: x: 870, y: 340 -->
+<path d="M 190 230 L 870 230" fill="none" stroke="#ff7a1a" stroke-width="3"></path>
+<!-- Drop to VAV 101 -->
+<path d="M 190 230 L 190 320" fill="none" marker-end="url(#arrow-air)" stroke="#ff7a1a" stroke-width="2.5"></path>
+<text class="font-code-xs text-[10px] fill-secondary" x="195" y="275">240 CFM</text>
+<!-- Drop to VAV 102 -->
+<path d="M 530 230 L 530 320" fill="none" marker-end="url(#arrow-air)" stroke="#ff7a1a" stroke-width="2.5"></path>
+<text class="font-code-xs text-[10px] fill-secondary" x="535" y="275">380 CFM</text>
+<!-- Drop to VAV 103 -->
+<path d="M 870 230 L 870 320" fill="none" marker-end="url(#arrow-air)" stroke="#ff7a1a" stroke-width="2.5"></path>
+<text class="font-code-xs text-[10px] fill-secondary" x="875" y="275">200 CFM</text>
+<!-- 3. TELEMETRY SENSOR SIGNALS (RAQS -> VAV zone reset loops) -->
+<!-- Room 101 RAQS (x: 105, y: 440) -> VAV 101 (x: 190, y: 400) -->
+<path d="M 115 400 L 115 365 L 140 365" fill="none" marker-end="url(#arrow-signal)" stroke="#5c5c5c" stroke-dasharray="3,3" stroke-width="1.5"></path>
+<!-- Room 102 RAQS (x: 445, y: 400) -> VAV 102 (x: 480, y: 365) -->
+<path d="M 455 400 L 455 365 L 480 365" fill="none" marker-end="url(#arrow-signal)" stroke="#5c5c5c" stroke-dasharray="3,3" stroke-width="1.5"></path>
+<!-- Room 103 RAQS (x: 795, y: 400) -> VAV 103 (x: 820, y: 365) -->
+<path d="M 795 400 L 795 365 L 820 365" fill="none" marker-end="url(#arrow-signal)" stroke="#5c5c5c" stroke-dasharray="3,3" stroke-width="1.5"></path>
+</svg>
+<!-- PLANT BOUNDARY / CENTRAL LOOP CONTAINER -->
+<div class="absolute left-6 top-4 w-[630px] h-[175px] rounded border border-border-subtle bg-surface-base/90 p-3 shadow-xs">
+<div class="flex items-center justify-between pb-2 border-b border-border-subtle">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary">factory</span>
+<span class="font-code-xs text-code-xs uppercase font-semibold text-on-surface tracking-wider">Central Hydronic &amp; Air Plant Equipment</span>
+</div>
+<span class="px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle font-code-xs text-[10px] text-secondary">Active Plant</span>
+</div>
+<!-- Plant Components Flex -->
+<div class="flex items-center justify-between mt-3 px-2">
+<!-- CHILLER-01 -->
+<div class="w-[125px] p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-chiller-01" onclick="selectCanvasElement('node-chiller-01')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">Chiller-01</span><span class="material-symbols-outlined text-[16px] text-secondary">ac_unit</span></div><div class="font-code-xs text-[11px] text-secondary">Central Chiller</div><div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div></div>
+<!-- ENERGY VALVE EV-01 -->
+<div class="w-[145px] p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-ev-01" onclick="selectCanvasElement('node-ev-01')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-primary">EV-01</span><span class="material-symbols-outlined text-[16px] text-primary">speed</span></div><div class="font-code-xs text-[11px] text-on-surface">Energy Valve</div><div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div></div>
+<!-- AHU-01 -->
+<div class="w-[140px] p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-ahu-01" onclick="selectCanvasElement('node-ahu-01')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">AHU-01</span><span class="material-symbols-outlined text-[16px] text-secondary">mode_fan</span></div><div class="font-code-xs text-[11px] text-secondary">Air Handling Unit</div><div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-on-surface"><span class="">Supply Fan</span><span class="text-status-success font-medium">Auto</span></div></div>
+</div>
+</div>
+<!-- ARCHITECTURAL ZONES / ROOM CONTAINERS -->
+<div class="absolute left-6 top-[280px] right-6 flex items-start gap-6">
+<!-- ZONE 101 [Conference North] -->
+<div class="flex-1 rounded border border-border-subtle bg-surface-base p-3 shadow-xs">
+<div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface">Zone 101 [Conference]</span>
+</div>
+<span class="font-code-xs text-[11px] text-secondary">38 m²</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- VAV-101 (SELECTED STATE DISPLAY) -->
+<div class="p-2.5 rounded bg-primary/5 border-2 border-primary transition-all cursor-pointer relative group shadow-sm ring-2 ring-primary/20" id="node-vav-101" onclick="selectCanvasElement('node-vav-101')"><div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-bold text-primary">VAV</span><span class="material-symbols-outlined text-[16px] text-primary">hvac</span></div><div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div><div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5"><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">45%</span></div><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">240 CFM</span></div></div></div>
+<!-- RAQS-101 -->
+<div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-raqs-101" onclick="selectCanvasElement('node-raqs-101')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span><span class="material-symbols-outlined text-[16px] text-secondary">air</span></div><div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div><div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5"><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">420 ppm</span></div><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.5°C</span></div></div></div>
+</div>
+</div>
+<!-- ZONE 102 [Open Workspace] -->
+<div class="flex-1 rounded border border-border-subtle bg-surface-base p-3 shadow-xs">
+<div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">grid_view</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface">Zone 102 [Open Office]</span>
+</div>
+<span class="font-code-xs text-[11px] text-secondary">85 m²</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- VAV-102 -->
+<div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-vav-102" onclick="selectCanvasElement('node-vav-102')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span><span class="material-symbols-outlined text-[16px] text-secondary">hvac</span></div><div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div><div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5"><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">68%</span></div><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">380 CFM</span></div></div></div>
+<!-- RAQS-102 -->
+<div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-raqs-102" onclick="selectCanvasElement('node-raqs-102')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span><span class="material-symbols-outlined text-[16px] text-secondary">air</span></div><div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div><div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5"><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-status-warning">580 ppm</span></div><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">22.8°C</span></div></div></div>
+</div>
+</div>
+<!-- ZONE 103 [Executive Office] -->
+<div class="flex-1 rounded border border-border-subtle bg-surface-base p-3 shadow-xs">
+<div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">shield_person</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface">Zone 103 [Exec]</span>
+</div>
+<span class="font-code-xs text-[11px] text-secondary">32 m²</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- VAV-103 -->
+<div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-vav-103" onclick="selectCanvasElement('node-vav-103')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span><span class="material-symbols-outlined text-[16px] text-secondary">hvac</span></div><div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div><div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5"><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">30%</span></div><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">200 CFM</span></div></div></div>
+<!-- RAQS-103 -->
+<div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-raqs-103" onclick="selectCanvasElement('node-raqs-103')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span><span class="material-symbols-outlined text-[16px] text-secondary">air</span></div><div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div><div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5"><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">395 ppm</span></div><div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.0°C</span></div></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Active Selection Footer Bar inside Central Canvas -->
+
+</main>
+</div>
+<!-- CSV UPLOAD SECTION (Full-width integrated bottom bar) -->
+<footer class="w-full bg-surface-base border-t border-border-subtle px-gutter-desktop py-space-md shadow-xs">
+<div class="w-full max-w-full flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<!-- Title & Schema details -->
+<div class="flex flex-col min-w-[280px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">table_chart</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">CSV Data</h2>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Upload Belimo CSV files to map data with your configured system.</p>
+
+</div>
+<!-- Action Controls -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<!-- Inlined file drop picker simulation -->
+<label class="flex items-center gap-2 px-3 py-2 bg-surface-canvas hover:bg-surface-subtle border border-border-strong rounded cursor-pointer transition-colors max-w-md">
+<span class="material-symbols-outlined text-[18px] text-secondary">upload_file</span>
+<span class="font-label-sm text-label-sm text-on-surface truncate" id="file-name-display">No file chosen (Supports .csv, .xlsx files)</span>
+<input accept=".csv, .xlsx, .txt" class="hidden" id="csv-file-input" onchange="handleFileSelect(event)" type="file">
+</label>
+<!-- Process Data Button -->
+<button class="px-space-lg py-2 rounded bg-primary hover:bg-accent-hover text-on-primary font-label-md text-label-md transition-colors flex items-center gap-1.5 shadow-xs" id="btn-process-data" onclick="simulateDataProcessing()">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+          Process Data
+        </button>
+</div>
+</div>
+</footer>
+</div>
+<script>
+  let currentZoom = 1.0;
+  const workspace = document.getElementById('canvas-workspace');
+  const selectionLabel = document.getElementById('active-selection-label');
+
+  function zoomCanvas(delta) {
+    currentZoom = Math.min(Math.max(currentZoom + delta, 0.6), 1.6);
+    workspace.style.transform = `scale(${currentZoom})`;
+  }
+
+  function resetZoom() {
+    currentZoom = 1.0;
+    workspace.style.transform = 'scale(1.0)';
+  }
+
+  function fitCanvas() {
+    currentZoom = 0.9;
+    workspace.style.transform = 'scale(0.9)';
+  }
+
+  function toggleRoom(roomId) {
+    const content = document.getElementById('content-' + roomId);
+    const caret = document.getElementById('caret-' + roomId);
+    if (content.classList.contains('hidden')) {
+      content.classList.remove('hidden');
+      caret.classList.add('rotate-90');
+    } else {
+      content.classList.add('hidden');
+      caret.classList.remove('rotate-90');
+    }
+  }
+
+  function selectCanvasElement(nodeId) {
+    const allInteractive = document.querySelectorAll('[id^="node-"]');
+    allInteractive.forEach(el => {
+      el.classList.remove('border-primary', 'border-2', 'bg-primary/5', 'ring-2', 'ring-primary/20');
+      el.classList.add('border-border-strong', 'bg-surface-canvas');
+      const badge = el.querySelector('.uppercase');
+      if (badge && badge.innerText.includes('ACTIVE SELECTED')) {
+        badge.remove();
+      }
+    });
+
+    const target = document.getElementById(nodeId);
+    if (target) {
+      target.classList.remove('border-border-strong', 'bg-surface-canvas');
+      target.classList.add('border-primary', 'border-2', 'bg-primary/5', 'ring-2', 'ring-primary/20');
+
+      let labelText = "Active Selection: " + nodeId;
+      if (nodeId.includes('vav-101')) labelText = "Active Selection: Belimo VAV-Compact Actuator LM24A-V (Zone 101)";
+      if (nodeId.includes('vav-102')) labelText = "Active Selection: Belimo VAV-Compact Actuator LM24A-V (Zone 102)";
+      if (nodeId.includes('vav-103')) labelText = "Active Selection: Belimo VAV-Compact Actuator LM24A-V (Zone 103)";
+      if (nodeId.includes('raqs-101')) labelText = "Active Selection: Indoor Air Quality RAQS Sensor (Zone 101)";
+      if (nodeId.includes('raqs-102')) labelText = "Active Selection: Indoor Air Quality RAQS Sensor (Zone 102)";
+      if (nodeId.includes('raqs-103')) labelText = "Active Selection: Indoor Air Quality RAQS Sensor (Zone 103)";
+      if (nodeId.includes('ev-01')) labelText = "Active Selection: Belimo Energy Valve™ EV-01 Ultrasonic Heat/Cooling Meter";
+      if (nodeId.includes('ahu-01')) labelText = "Active Selection: Air Handling Unit AHU-01 DX Static Pressure Loop";
+      if (nodeId.includes('chiller-01')) labelText = "Active Selection: Central Chilled Water Plant 01";
+
+      selectionLabel.innerText = labelText;
+    }
+  }
+
+  function switchCanvasView(viewType) {
+    const tabLayout = document.getElementById('tab-layout');
+    const tabGraph = document.getElementById('tab-graph');
+    const tabOverview = document.getElementById('tab-overview');
+
+    [tabLayout, tabGraph, tabOverview].forEach(tab => {
+      tab.classList.remove('border-primary', 'text-primary', 'font-semibold');
+      tab.classList.add('border-transparent', 'text-secondary');
+    });
+
+    if (viewType === 'graph') {
+      tabGraph.classList.add('border-primary', 'text-primary', 'font-semibold');
+      tabGraph.classList.remove('border-transparent', 'text-secondary');
+    } else if (viewType === 'overview') {
+      tabOverview.classList.add('border-primary', 'text-primary', 'font-semibold');
+      tabOverview.classList.remove('border-transparent', 'text-secondary');
+    } else {
+      tabLayout.classList.add('border-primary', 'text-primary', 'font-semibold');
+      tabLayout.classList.remove('border-transparent', 'text-secondary');
+    }
+  }
+
+  function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+      document.getElementById('file-name-display').innerText = files[0].name + " (" + (files[0].size / 1024).toFixed(1) + " KB)";
+      document.getElementById('file-name-display').classList.add('text-primary', 'font-semibold');
+    }
+  }
+
+  function simulateDataProcessing() {
+    const btn = document.getElementById('btn-process-data');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Processing...`;
+    btn.classList.add('opacity-75');
+
+    setTimeout(() => {
+      btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span> Ingested 1,420 rows`;
+      btn.classList.remove('opacity-75');
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+      }, 2500);
+    }, 1200);
+  }
+
+  function removeNode(type, id) {
+    const confirmed = confirm(`Remove ${type} [${id}] from system topology?`);
+    if (confirmed) {
+      const roomCard = document.querySelector(`[data-room-id="${id}"]`);
+      if (roomCard) {
+        roomCard.style.opacity = '0.5';
+        setTimeout(() => roomCard.remove(), 200);
+      }
+    }
+  }
+
+  function addDeviceToRoom(roomId) {
+    alert(`Add Device modal: Select from Belimo Catalog (VAV Compact, RAQS, Globe Valve) for Room ${roomId}`);
+  }
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (confirm('Reset canvas to default 3-zone Belimo reference configuration?')) {
+      resetZoom();
+      selectCanvasElement('node-vav-101');
+    }
+  });
+
+  document.getElementById('btn-save').addEventListener('click', () => {
+    alert('System topology saved and compiled to BACnet network BL-8042-CHW successfully.');
+  });
+</script></main></div>
+
+
+
+
+
+</body></html>
