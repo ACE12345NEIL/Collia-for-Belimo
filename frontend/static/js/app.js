@@ -11,6 +11,8 @@ const state = {
   selectedType: null, // 'building' | 'floor' | 'room' | 'equipment'
   activeFloorId: null,
   currentZoom: 1.0,
+  panX: 32,
+  panY: 32,
   activeTab: 'layout'
 };
 
@@ -54,6 +56,104 @@ function initEventListeners() {
   window.addEventListener('resize', () => {
     updateCanvasSchematicArrows();
   });
+
+  // Google Maps-style pan + zoom on canvas
+  initCanvasInteraction();
+}
+
+// -------------------------------------------------------------
+// Canvas Pan + Zoom (Google Maps style)
+// -------------------------------------------------------------
+function applyCanvasTransform() {
+  const workspace = document.getElementById('canvas-workspace');
+  if (!workspace) return;
+  workspace.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.currentZoom})`;
+}
+
+function initCanvasInteraction() {
+  const viewport = document.getElementById('canvas-viewport');
+  const workspace = document.getElementById('canvas-workspace');
+  if (!viewport || !workspace) return;
+
+  let isPanning = false;
+  let startMouseX = 0, startMouseY = 0;
+  let startPanX = 0, startPanY = 0;
+
+  // Apply initial transform
+  applyCanvasTransform();
+
+  viewport.addEventListener('mousedown', e => {
+    // Only pan on left-click on the viewport/workspace background (not on cards)
+    if (e.button !== 0) return;
+    // Allow clicks through to card elements (don't pan if target is an interactive element)
+    const tag = e.target.tagName.toLowerCase();
+    const isInteractive = ['button', 'input', 'select', 'textarea', 'a', 'label'].includes(tag);
+    const isInsideCard = e.target.closest('[id^="node-"], [id^="room-card-"], .modal, [data-no-pan]');
+    if (isInteractive || isInsideCard) return;
+
+    isPanning = true;
+    startMouseX = e.clientX;
+    startMouseY = e.clientY;
+    startPanX = state.panX;
+    startPanY = state.panY;
+    viewport.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isPanning) return;
+    state.panX = startPanX + (e.clientX - startMouseX);
+    state.panY = startPanY + (e.clientY - startMouseY);
+    applyCanvasTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!isPanning) return;
+    isPanning = false;
+    viewport.style.cursor = 'grab';
+    // Redraw arrows after pan settle
+    requestAnimationFrame(() => updateCanvasSchematicArrows());
+  });
+
+  // Scroll-wheel zoom centred on cursor position
+  viewport.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;  // cursor relative to viewport
+    const mouseY = e.clientY - rect.top;
+
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    const newZoom = Math.min(Math.max(state.currentZoom + delta, 0.3), 2.5);
+    const zoomRatio = newZoom / state.currentZoom;
+
+    // Adjust pan so the point under the cursor stays fixed
+    state.panX = mouseX - zoomRatio * (mouseX - state.panX);
+    state.panY = mouseY - zoomRatio * (mouseY - state.panY);
+    state.currentZoom = newZoom;
+
+    applyCanvasTransform();
+    requestAnimationFrame(() => updateCanvasSchematicArrows());
+  }, { passive: false });
+
+  // Touch support for pan
+  let lastTouchX = 0, lastTouchY = 0;
+  viewport.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  viewport.addEventListener('touchmove', e => {
+    if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - lastTouchX;
+      const dy = e.touches[0].clientY - lastTouchY;
+      state.panX += dx;
+      state.panY += dy;
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+      applyCanvasTransform();
+    }
+  }, { passive: true });
 }
 
 // -------------------------------------------------------------
@@ -115,6 +215,14 @@ async function updateFacilityName(name) {
 // -------------------------------------------------------------
 function renderSidebar() {
   if (!state.topology) return;
+
+  // ── Persist room collapse state before rebuilding DOM ──────────────────
+  const collapsedRooms = new Set();
+  document.querySelectorAll('[id^="content-"]').forEach(el => {
+    if (el.classList.contains('hidden')) {
+      collapsedRooms.add(el.id.replace('content-', ''));
+    }
+  });
 
   // 1. FLOORS LIST
   const floorsList = document.getElementById('floors-list');
@@ -239,6 +347,14 @@ function renderSidebar() {
         `;
         roomsTree.appendChild(roomDiv);
       });
+    });
+
+    // ── Restore room collapse state after DOM rebuild ──────────────────────
+    collapsedRooms.forEach(roomId => {
+      const content = document.getElementById('content-' + roomId);
+      const caret = document.getElementById('caret-' + roomId);
+      if (content) content.classList.add('hidden');
+      if (caret) caret.classList.remove('rotate-90');
     });
   }
 
@@ -539,20 +655,16 @@ function updateCanvasSchematicArrows() {
   const evs = (state.topology.shared_equipment || []).filter(e => e.equipment_type === 'EV');
   const ahus = (state.topology.shared_equipment || []).filter(e => e.equipment_type === 'AHU');
 
-  // Pair connections: use actual relationships or fallback to available plant units
+  // Pair connections: use ONLY actual relationships — no fallback
   chillers.forEach(ch => {
     const cEl = document.getElementById(`node-${ch.id}`);
     const c = getCoords(cEl);
     if (!c) return;
 
-    let targetEvs = (state.topology.relationships || [])
+    const targetEvs = (state.topology.relationships || [])
       .filter(r => r.source_id === ch.id && r.relationship_type === 'SUPPLIES')
       .map(r => evs.find(e => e.id === r.target_id))
       .filter(Boolean);
-
-    if (targetEvs.length === 0 && evs.length > 0) {
-      targetEvs = [evs[0]];
-    }
 
     targetEvs.forEach(evObj => {
       const evEl = document.getElementById(`node-${evObj.id}`);
@@ -573,20 +685,16 @@ function updateCanvasSchematicArrows() {
     });
   });
 
-  // EV -> AHU
+  // EV -> AHU — only real relationships
   evs.forEach(evObj => {
     const evEl = document.getElementById(`node-${evObj.id}`);
     const ev = getCoords(evEl);
     if (!ev) return;
 
-    let targetAhus = (state.topology.relationships || [])
+    const targetAhus = (state.topology.relationships || [])
       .filter(r => r.source_id === evObj.id && (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES'))
       .map(r => ahus.find(a => a.id === r.target_id))
       .filter(Boolean);
-
-    if (targetAhus.length === 0 && ahus.length > 0) {
-      targetAhus = [ahus[0]];
-    }
 
     targetAhus.forEach(ahuObj => {
       const ahuEl = document.getElementById(`node-${ahuObj.id}`);
@@ -607,13 +715,21 @@ function updateCanvasSchematicArrows() {
     });
   });
 
-  // Hydronic Return Line (bottom margin of plant units)
+  // Hydronic Return Line — only draw when at least one chiller→EV AND ev→AHU real relationship exists
+  const rels = state.topology.relationships || [];
+  const hasChillerEvRel = chillers.some(ch =>
+    rels.some(r => r.source_id === ch.id && r.relationship_type === 'SUPPLIES' && evs.some(ev => ev.id === r.target_id))
+  );
+  const hasEvAhuRel = evs.some(ev =>
+    rels.some(r => r.source_id === ev.id && (r.relationship_type === 'CONNECTED_TO' || r.relationship_type === 'SUPPLIES') && ahus.some(a => a.id === r.target_id))
+  );
+
   const firstChillerEl = chillers[0] ? document.getElementById(`node-${chillers[0].id}`) : null;
   const firstAhuEl = ahus[0] ? document.getElementById(`node-${ahus[0].id}`) : null;
   const cFirst = getCoords(firstChillerEl);
   const aFirst = getCoords(firstAhuEl);
 
-  if (cFirst && aFirst) {
+  if (cFirst && aFirst && hasChillerEvRel && hasEvAhuRel) {
     const returnY = Math.round(Math.max(cFirst.bottom, aFirst.bottom) + 14);
     const midX = Math.round((cFirst.centerX + aFirst.centerX) / 2);
 
@@ -625,13 +741,34 @@ function updateCanvasSchematicArrows() {
     `;
   }
 
-  // 2. Supply Air Duct: AHU exit -> distribution manifold -> rooms
+  // 2. Supply Air Duct: AHU exit -> distribution manifold -> only rooms/VAVs with real AHU→VAV or AHU→ROOM relationships
   ahus.forEach(ahuObj => {
     const ahuEl = document.getElementById(`node-${ahuObj.id}`);
     const ahu = getCoords(ahuEl);
     if (!ahu) return;
 
-    const roomDivs = Array.from(document.querySelectorAll('#zones-canvas-container [id^="room-card-"]'));
+    // Find VAVs/rooms that this AHU actually SUPPLIES via relationships
+    const ahuRels = rels.filter(r =>
+      r.source_id === ahuObj.id &&
+      (r.relationship_type === 'SUPPLIES' || r.relationship_type === 'SERVES' || r.relationship_type === 'CONNECTED_TO')
+    );
+    if (ahuRels.length === 0) return; // No connections at all — draw nothing
+
+    // Collect target room card divs that correspond to these relationships
+    const targetIds = new Set(ahuRels.map(r => r.target_id));
+    const allRoomDivs = Array.from(document.querySelectorAll('#zones-canvas-container [id^="room-card-"]'));
+
+    // Match room cards: room card id is "room-card-{roomId}", VAV nodes are "node-{eqId}"
+    const connectedRoomDivs = allRoomDivs.filter(div => {
+      const roomId = div.id.replace('room-card-', '');
+      if (targetIds.has(roomId)) return true; // AHU directly serves room
+      // Check if any VAV inside this room is in targetIds
+      const vavNodes = div.querySelectorAll('[id^="node-"]');
+      return Array.from(vavNodes).some(n => targetIds.has(n.id.replace('node-', '')));
+    });
+
+    // Fall back to ALL room divs only if AHU has connections but no matching divs rendered yet
+    const roomDivs = connectedRoomDivs.length > 0 ? connectedRoomDivs : [];
     if (roomDivs.length === 0) return;
 
     const trunkY = Math.round(ahu.centerY);
@@ -2552,26 +2689,34 @@ async function submitConfigureRAQS(e) {
 // Canvas Controls (Zoom & Switch Views)
 // -------------------------------------------------------------
 function zoomCanvas(delta) {
-  const workspace = document.getElementById('canvas-workspace');
-  if (!workspace) return;
-  state.currentZoom = Math.min(Math.max(state.currentZoom + delta, 0.6), 1.6);
-  workspace.style.transform = `scale(${state.currentZoom})`;
+  const viewport = document.getElementById('canvas-viewport');
+  if (!viewport) return;
+  const rect = viewport.getBoundingClientRect();
+  // Zoom towards the centre of the viewport
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const newZoom = Math.min(Math.max(state.currentZoom + delta, 0.3), 2.5);
+  const ratio = newZoom / state.currentZoom;
+  state.panX = cx - ratio * (cx - state.panX);
+  state.panY = cy - ratio * (cy - state.panY);
+  state.currentZoom = newZoom;
+  applyCanvasTransform();
   updateCanvasSchematicArrows();
 }
 
 function resetZoom() {
-  const workspace = document.getElementById('canvas-workspace');
-  if (!workspace) return;
   state.currentZoom = 1.0;
-  workspace.style.transform = 'scale(1.0)';
+  state.panX = 32;
+  state.panY = 32;
+  applyCanvasTransform();
   updateCanvasSchematicArrows();
 }
 
 function fitCanvas() {
-  const workspace = document.getElementById('canvas-workspace');
-  if (!workspace) return;
-  state.currentZoom = 0.9;
-  workspace.style.transform = 'scale(0.9)';
+  state.currentZoom = 0.85;
+  state.panX = 24;
+  state.panY = 24;
+  applyCanvasTransform();
   updateCanvasSchematicArrows();
 }
 

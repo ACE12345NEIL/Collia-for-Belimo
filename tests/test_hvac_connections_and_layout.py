@@ -52,8 +52,8 @@ class TestHvacConnectionsAndLayout(unittest.TestCase):
         self.assertIn('id="modal-device-dynamic-connections"', html)
         self.assertIn('id="modal-device-custom-target"', html)
 
-        # Verify 60% opacity
-        self.assertIn('stroke-opacity="0.6"', html)
+        # Verify 60% opacity markers present in SVG defs (arrows drawn dynamically via JS)
+        self.assertIn('fill-opacity="0.6"', html)  # Arrow marker defs in static SVG
 
     def test_app_js_contains_connection_logic_and_layout(self):
         """Verifies app.js defines all required connection dispatchers, handlers, and dynamic arrows."""
