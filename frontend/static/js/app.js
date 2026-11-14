@@ -330,119 +330,112 @@ function renderCanvas() {
     });
   }
 
-  // 2. Render Floors & Rooms / Zones — grouped by floor
+  // 2. Render Rooms / Zones in a clean horizontal strip (as in index.html reference)
   const zonesContainer = document.getElementById('zones-canvas-container');
   if (zonesContainer) {
     const rooms = state.topology.rooms || [];
     const floors = state.topology.floors || [];
+    const roomEq = state.topology.room_equipment || [];
     zonesContainer.innerHTML = '';
 
-    // Group rooms by floor_id
+    // Group rooms by floor (roomsByFloor) for clear floor distinction
     const roomsByFloor = {};
-    floors.forEach(fl => { roomsByFloor[fl.id] = []; });
-    rooms.forEach(room => {
-      if (roomsByFloor[room.floor_id]) {
-        roomsByFloor[room.floor_id].push(room);
-      }
+    floors.forEach(f => { roomsByFloor[f.id] = []; });
+    rooms.forEach(r => {
+      const fid = r.floor_id || (floors[0] ? floors[0].id : 'default');
+      if (!roomsByFloor[fid]) roomsByFloor[fid] = [];
+      roomsByFloor[fid].push(r);
     });
 
-    floors.forEach(floor => {
-      const floorRooms = roomsByFloor[floor.id] || [];
-      const isActiveFloor = state.activeFloorId === floor.id;
-      const isFloorSelected = state.selectedEntity && state.selectedEntity.id === floor.id;
+    Object.keys(roomsByFloor).forEach(floorId => {
+      const floorRooms = roomsByFloor[floorId];
+      if (!floorRooms || floorRooms.length === 0) return;
+      const floorObj = floors.find(f => f.id === floorId) || { name: `Floor ${floorId}` };
+      const floorSection = floorObj.name;
 
-      const floorSection = document.createElement('div');
-      floorSection.className = `rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20' : isActiveFloor ? 'border-primary/30' : 'border-border-subtle'} bg-surface-base/70 p-4 transition-all`;
+      floorRooms.forEach(room => {
+        const thisRoomEq = roomEq.filter(eq => eq.room_id === room.id);
+        const isRoomSelected = state.selectedEntity && state.selectedEntity.id === room.id;
+        const vavEq = thisRoomEq.find(eq => eq.equipment_type === 'VAV');
+        const raqsEq = thisRoomEq.find(eq => eq.equipment_type === 'RAQS');
 
-      // Floor header
-      const floorHeader = document.createElement('div');
-      floorHeader.className = 'flex items-center justify-between pb-2 mb-3 border-b border-border-subtle cursor-pointer';
-      floorHeader.onclick = () => {
-        state.activeFloorId = floor.id;
-        selectEntity('floor', floor.id);
-      };
-      floorHeader.innerHTML = `
-        <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-[20px] ${isActiveFloor ? 'text-primary' : 'text-secondary'}">layers</span>
-          <span class="font-headline-sm text-headline-sm font-semibold ${isActiveFloor ? 'text-primary' : 'text-on-surface'}">${floor.name}</span>
-          <span class="px-2 py-0.5 rounded bg-surface-subtle border border-border-subtle font-code-xs text-[10px] text-secondary uppercase tracking-wider">Level ${floor.floor_number}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="font-code-xs text-[11px] text-secondary">${floorRooms.length} ${floorRooms.length === 1 ? 'room' : 'rooms'}</span>
-          ${isActiveFloor ? '<span class="w-2 h-2 rounded-full bg-primary"></span>' : ''}
-        </div>
-      `;
-      floorSection.appendChild(floorHeader);
+        const zoneDiv = document.createElement('div');
+        zoneDiv.id = `room-card-${room.id}`;
+        zoneDiv.className = `flex-1 min-w-[280px] max-w-[340px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto shrink-0`;
+        zoneDiv.onclick = (e) => {
+          if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
+            selectEntity('room', room.id);
+          }
+        };
 
-      // Rooms row within this floor
-      if (floorRooms.length > 0) {
-        const roomsRow = document.createElement('div');
-        roomsRow.className = 'flex items-start gap-4 overflow-x-auto pb-1';
-
-        floorRooms.forEach(room => {
-          const roomEq = (state.topology.room_equipment || []).filter(eq => eq.room_id === room.id);
-          const isRoomSelected = state.selectedEntity && state.selectedEntity.id === room.id;
-
-          const zoneDiv = document.createElement('div');
-          zoneDiv.className = `flex-1 min-w-[260px] max-w-[320px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto`;
-          zoneDiv.onclick = (e) => {
-            if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
-              selectEntity('room', room.id);
-            }
-          };
-
-          zoneDiv.innerHTML = `
-            <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
-                <span class="font-label-md text-label-md font-semibold text-on-surface truncate">${room.name}</span>
-              </div>
-              <span class="font-code-xs text-[11px] text-secondary shrink-0">${room.area_sqm || 0} m²</span>
+        zoneDiv.innerHTML = `
+          <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
+              <span class="font-label-md text-label-md font-semibold text-on-surface truncate">${room.name}</span>
+              <span class="px-1.5 py-0.2 rounded bg-primary/10 text-primary font-code-xs text-[9px] font-semibold uppercase tracking-wider shrink-0" title="Floor: ${floorSection}">${floorSection}</span>
             </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              ${roomEq.map(eq => {
-                const isEqSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
-                const isVav = eq.equipment_type === 'VAV';
-
-                return `
-                  <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
-                    ${isEqSelected ? '<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>' : ''}
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="font-label-sm text-label-sm font-semibold ${isEqSelected ? 'text-primary font-bold' : 'text-on-surface'} truncate">${eq.equipment_type}</span>
-                      <span class="material-symbols-outlined text-[16px] ${isEqSelected ? 'text-primary' : 'text-secondary'}">${isVav ? 'hvac' : 'air'}</span>
-                    </div>
-                    <div class="font-code-xs text-[10px] text-secondary truncate">${eq.name}</div>
-                    <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-                      <div class="flex justify-between font-code-xs text-[11px]">
-                        <span class="text-secondary">${isVav ? 'Airflow' : 'CO2'}:</span>
-                        <span class="font-semibold text-on-surface">${isVav ? 'Normal' : '—'}</span>
-                      </div>
-                      <div class="flex justify-between font-code-xs text-[11px]">
-                        <span class="text-secondary">CSV:</span>
-                        <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${eq.csv_filename || 'Not assigned'}">${eq.csv_filename || '—'}</span>
-                      </div>
-                    </div>
+            <span class="font-code-xs text-[11px] text-secondary shrink-0">${room.area_sqm || 0} m²</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            ${vavEq ? `
+              <div class="p-2.5 rounded ${state.selectedEntity?.id === vavEq.id ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto" id="node-${vavEq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${vavEq.id}')">
+                ${state.selectedEntity?.id === vavEq.id ? '<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>' : ''}
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-label-sm text-label-sm font-semibold ${state.selectedEntity?.id === vavEq.id ? 'text-primary font-bold' : 'text-on-surface'} truncate">VAV</span>
+                  <span class="material-symbols-outlined text-[16px] ${state.selectedEntity?.id === vavEq.id ? 'text-primary' : 'text-secondary'}">hvac</span>
+                </div>
+                <div class="font-code-xs text-[10px] text-secondary truncate">${vavEq.name}</div>
+                <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+                  <div class="flex justify-between font-code-xs text-[11px]">
+                    <span class="text-secondary">Airflow:</span>
+                    <span class="font-semibold text-on-surface">Normal</span>
                   </div>
-                `;
-              }).join('')}
-            </div>
-          `;
-          roomsRow.appendChild(zoneDiv);
-        });
-
-        floorSection.appendChild(roomsRow);
-      } else {
-        const emptyMsg = document.createElement('div');
-        emptyMsg.className = 'text-center py-4 text-secondary font-code-xs text-code-xs';
-        emptyMsg.textContent = 'No rooms configured on this floor. Use "Add Room" to create one.';
-        floorSection.appendChild(emptyMsg);
-      }
-
-      zonesContainer.appendChild(floorSection);
+                  <div class="flex justify-between font-code-xs text-[11px]">
+                    <span class="text-secondary">CSV:</span>
+                    <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${vavEq.csv_filename || 'Not assigned'}">${vavEq.csv_filename || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="p-2.5 rounded border border-dashed border-border-subtle flex flex-col items-center justify-center text-secondary text-center cursor-pointer hover:border-primary hover:text-primary transition-colors min-h-[90px]" onclick="openAddRoomDeviceModal('${room.id}', '${room.name}')">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                <span class="font-code-xs text-[10px] mt-0.5">Add VAV</span>
+              </div>
+            `}
+            ${raqsEq ? `
+              <div class="p-2.5 rounded ${state.selectedEntity?.id === raqsEq.id ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto" id="node-${raqsEq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${raqsEq.id}')">
+                ${state.selectedEntity?.id === raqsEq.id ? '<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>' : ''}
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-label-sm text-label-sm font-semibold ${state.selectedEntity?.id === raqsEq.id ? 'text-primary font-bold' : 'text-on-surface'} truncate">RAQS</span>
+                  <span class="material-symbols-outlined text-[16px] ${state.selectedEntity?.id === raqsEq.id ? 'text-primary' : 'text-secondary'}">air</span>
+                </div>
+                <div class="font-code-xs text-[10px] text-secondary truncate">${raqsEq.name}</div>
+                <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+                  <div class="flex justify-between font-code-xs text-[11px]">
+                    <span class="text-secondary">CO2:</span>
+                    <span class="font-semibold text-on-surface">420 ppm</span>
+                  </div>
+                  <div class="flex justify-between font-code-xs text-[11px]">
+                    <span class="text-secondary">CSV:</span>
+                    <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${raqsEq.csv_filename || 'Not assigned'}">${raqsEq.csv_filename || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="p-2.5 rounded border border-dashed border-border-subtle flex flex-col items-center justify-center text-secondary text-center cursor-pointer hover:border-primary hover:text-primary transition-colors min-h-[90px]" onclick="openAddRoomDeviceModal('${room.id}', '${room.name}')">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                <span class="font-code-xs text-[10px] mt-0.5">Add RAQS</span>
+              </div>
+            `}
+          </div>
+        `;
+        zonesContainer.appendChild(zoneDiv);
+      });
     });
   }
 
-  // Draw clean, top-layer dynamic schematic interconnect arrows
+  // Draw clean, top-layer dynamic schematic interconnect arrows (matches index.html reference)
   requestAnimationFrame(() => {
     updateCanvasSchematicArrows();
   });
@@ -450,7 +443,8 @@ function renderCanvas() {
 
 // -------------------------------------------------------------
 // Dynamic Top-Layer SVG Schematic Interconnect Arrows
-// Connects Chiller -> EV -> AHU, AHU -> VAVs, RAQS -> VAV
+// Connects Chiller -> EV -> AHU without overlapping EV
+// Connects Supply Air Duct to ALL rooms without overlapping card text
 // -------------------------------------------------------------
 function updateCanvasSchematicArrows() {
   const svg = document.getElementById('canvas-schematic-svg');
@@ -494,7 +488,7 @@ function updateCanvasSchematicArrows() {
 
   let paths = '';
 
-  // 1. Central Hydronic Plant Interconnects (Chiller -> EV -> AHU)
+  // 1. Central Hydronic Loop: Chiller -> EV -> AHU (Gaps only, never overlapping EV)
   const chillerEl = document.getElementById('node-eq_chiller_01') || document.querySelector('[id*="chiller"]');
   const evEl = document.getElementById('node-eq_ev_01') || document.querySelector('[id*="ev"]');
   const ahuEl = document.getElementById('node-eq_ahu_01') || document.querySelector('[id*="ahu"]');
@@ -504,137 +498,86 @@ function updateCanvasSchematicArrows() {
   const ahu = getCoords(ahuEl);
 
   if (c && ev) {
-    const midX = Math.round((c.right + ev.x) / 2);
+    const startX = Math.round(c.right);
+    const endX = Math.round(ev.x);
     const y = Math.round(c.centerY);
+    const midX = Math.round((startX + endX) / 2);
     paths += `
-      <!-- Chiller to EV -->
-      <path d="M ${Math.round(c.right)} ${y} L ${Math.round(ev.x)} ${y}" fill="none" stroke="#0284C7" stroke-width="3" marker-end="url(#arrow-chw)"></path>
-      <rect x="${midX - 26}" y="${y - 18}" width="52" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8"></rect>
+      <!-- Chiller to EV (in the gap, no overlap) -->
+      <path d="M ${startX} ${y} L ${endX} ${y}" fill="none" stroke="#0284C7" stroke-width="3" marker-end="url(#arrow-chw)"></path>
+      <rect x="${midX - 25}" y="${y - 18}" width="50" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8"></rect>
       <text x="${midX}" y="${y - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-[#0284C7] font-bold">6.1°C</text>
     `;
   }
 
   if (ev && ahu) {
-    const midX = Math.round((ev.right + ahu.x) / 2);
+    const startX = Math.round(ev.right);
+    const endX = Math.round(ahu.x);
     const y = Math.round(ev.centerY);
+    const midX = Math.round((startX + endX) / 2);
     paths += `
-      <!-- EV to AHU -->
-      <path d="M ${Math.round(ev.right)} ${y} L ${Math.round(ahu.x)} ${y}" fill="none" stroke="#0284C7" stroke-width="3" marker-end="url(#arrow-chw)"></path>
-      <rect x="${midX - 26}" y="${y - 18}" width="52" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8"></rect>
+      <!-- EV to AHU (in the gap, no overlap) -->
+      <path d="M ${startX} ${y} L ${endX} ${y}" fill="none" stroke="#0284C7" stroke-width="3" marker-end="url(#arrow-chw)"></path>
+      <rect x="${midX - 25}" y="${y - 18}" width="50" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8"></rect>
       <text x="${midX}" y="${y - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-[#0284C7] font-bold">Coil In</text>
     `;
   }
 
   if (c && ahu) {
-    const returnY = Math.round(Math.max(c.bottom, ahu.bottom) + 14);
+    // Return line runs strictly below all cards in the bottom margin (y ≈ 170)
+    const cardsBottom = Math.max(c.bottom, (ev ? ev.bottom : c.bottom), ahu.bottom);
+    const returnY = Math.round(cardsBottom + 12);
     const midX = Math.round((c.centerX + ahu.centerX) / 2);
     paths += `
-      <!-- Hydronic Return -->
+      <!-- Hydronic Return (beneath cards in bottom margin, never overlapping EV) -->
       <path d="M ${Math.round(ahu.centerX)} ${Math.round(ahu.bottom)} L ${Math.round(ahu.centerX)} ${returnY} L ${Math.round(c.centerX)} ${returnY} L ${Math.round(c.centerX)} ${Math.round(c.bottom + 4)}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" marker-end="url(#arrow-return)"></path>
       <rect x="${midX - 70}" y="${returnY - 9}" width="140" height="18" rx="4" fill="#FFFFFF" stroke="#64748B" stroke-width="1"></rect>
       <text x="${midX}" y="${returnY + 4}" text-anchor="middle" class="font-code-xs text-[10px] fill-secondary font-medium">◀ Hydronic Return 12.8°C ◀</text>
     `;
   }
 
-  // 2. Supply Air Duct from AHU-01 to Floor Rooms / VAV Actuators
+  // 2. Supply Air Duct: AHU exit -> y=230 manifold -> connects to ALL rooms
   if (ahu) {
-    const vavNodes = [];
-    (state.topology.rooms || []).forEach(room => {
-      const roomEq = (state.topology.room_equipment || []).filter(e => e.room_id === room.id);
-      const vav = roomEq.find(e => e.equipment_type === 'VAV');
-      if (vav) {
-        const vEl = document.getElementById('node-' + vav.id);
-        const vCoords = getCoords(vEl);
-        if (vCoords) {
-          vavNodes.push({ room, vav, coords: vCoords });
-        }
-      }
-    });
+    const roomDivs = Array.from(document.querySelectorAll('#zones-canvas-container > div'));
+    const trunkY = Math.round(ahu.centerY);
+    const riserX = 710;
+    const manifoldY = 230;
 
-    if (vavNodes.length > 0) {
-      const riserX = Math.round(ahu.right + 25);
-      const trunkY = Math.round(ahu.centerY);
+    // Exit AHU right, turn to riser, drop to y=230
+    paths += `
+      <!-- Main AHU exit trunk heading right and down to manifold -->
+      <path d="M ${Math.round(ahu.right)} ${trunkY} L ${riserX} ${trunkY} L ${riserX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="3.5"></path>
+      <rect x="655" y="${trunkY - 18}" width="115" height="17" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8"></rect>
+      <text x="712" y="${trunkY - 6}" text-anchor="middle" class="font-code-xs text-[10px] fill-primary font-bold">Supply Air Duct</text>
+    `;
 
-      // Main AHU exit line
-      paths += `
-        <!-- Supply Air Trunk exit -->
-        <path d="M ${Math.round(ahu.right)} ${trunkY} L ${riserX} ${trunkY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"></path>
-        <rect x="${riserX - 10}" y="${trunkY - 18}" width="95" height="15" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8"></rect>
-        <text x="${riserX + 38}" y="${trunkY - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-primary font-bold">Supply Air Trunk</text>
-      `;
-
-      // Group VAVs by floor
-      const vavsByFloor = {};
-      vavNodes.forEach(item => {
-        const flId = item.room.floor_id;
-        if (!vavsByFloor[flId]) vavsByFloor[flId] = [];
-        vavsByFloor[flId].push(item);
+    if (roomDivs.length > 0) {
+      const roomDrops = roomDivs.map(div => {
+        const rc = getCoords(div);
+        return {
+          x: Math.round(rc.centerX),
+          top: Math.round(rc.y)
+        };
       });
 
-      let maxRiserY = trunkY;
+      const minX = Math.min(...roomDrops.map(d => d.x));
+      const maxX = Math.max(...roomDrops.map(d => d.x), riserX);
 
-      Object.keys(vavsByFloor).forEach(flId => {
-        const items = vavsByFloor[flId];
-        const minVavX = Math.min(...items.map(i => i.coords.x));
-        const floorEl = document.getElementById('floor-container-' + flId) || items[0].coords;
-        const flCoords = getCoords(floorEl) || items[0].coords;
+      // Horizontal manifold line at y=230 spanning across ALL rooms
+      paths += `
+        <!-- Distribution Manifold line across ALL rooms -->
+        <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3"></path>
+      `;
 
-        // Position distribution channel right above the room cards
-        const floorDistY = Math.round(flCoords.y + 44);
-        if (floorDistY > maxRiserY) maxRiserY = floorDistY;
-
-        // Horizontal branch duct from riser across to first VAV room
+      // Vertical drop to EVERY room, stopping at top border (never overlapping room card text)
+      roomDrops.forEach(drop => {
         paths += `
-          <!-- Floor ${flId} Supply Duct Branch -->
-          <path d="M ${riserX} ${floorDistY} L ${Math.round(minVavX - 8)} ${floorDistY}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-linecap="round"></path>
+          <!-- Drop into room top border -->
+          <path d="M ${drop.x} ${manifoldY} L ${drop.x} ${drop.top - 2}" fill="none" stroke="#ff7a1a" stroke-width="2.5" marker-end="url(#arrow-air)"></path>
         `;
-
-        // Supply drop into each VAV on this floor
-        items.forEach(item => {
-          const dropX = Math.round(item.coords.x - 8);
-          const vavY = Math.round(item.coords.centerY);
-          paths += `
-            <!-- Duct drop into ${item.vav.name} -->
-            <path d="M ${dropX} ${floorDistY} L ${dropX} ${vavY} L ${Math.round(item.coords.x)} ${vavY}" fill="none" stroke="#ff7a1a" stroke-width="2" marker-end="url(#arrow-air)"></path>
-          `;
-        });
       });
-
-      // Main vertical riser from AHU to the lowest floor branch
-      paths += `
-        <!-- Main vertical supply duct riser -->
-        <path d="M ${riserX} ${trunkY} L ${riserX} ${maxRiserY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"></path>
-      `;
     }
   }
-
-  // 3. Zone Control Signals (RAQS Sensor controls VAV Actuator)
-  (state.topology.rooms || []).forEach(room => {
-    const roomEq = (state.topology.room_equipment || []).filter(e => e.room_id === room.id);
-    const vav = roomEq.find(e => e.equipment_type === 'VAV');
-    const raqs = roomEq.find(e => e.equipment_type === 'RAQS');
-
-    if (vav && raqs) {
-      const vEl = document.getElementById('node-' + vav.id);
-      const rEl = document.getElementById('node-' + raqs.id);
-      const vc = getCoords(vEl);
-      const rc = getCoords(rEl);
-
-      if (vc && rc) {
-        const rx = Math.round(rc.x);
-        const vx = Math.round(vc.right);
-        const y = Math.round(rc.centerY);
-
-        if (rx > vx) {
-          // Clean directional arrow from RAQS into VAV across card gap
-          paths += `
-            <!-- Telemetry Control Loop RAQS -> VAV in ${room.name} -->
-            <path d="M ${rx} ${y} L ${vx} ${y}" fill="none" stroke="#ff7a1a" stroke-dasharray="3,2" stroke-width="1.8" marker-end="url(#arrow-reset-signal)"></path>
-          `;
-        }
-      }
-    }
-  });
 
   svg.innerHTML = defs + paths;
 }
