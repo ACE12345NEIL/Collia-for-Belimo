@@ -1,7 +1,7 @@
 id,equipment_type,category,name,description,csv_filename,room_id,building_id,created_at,updated_at
 eq_raqs_102,RAQS,ROOM_LEVEL,RAQS (Air Quality),Zone 102 Indoor Air Quality Sensor,RAQS_102.csv,rm_102,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
-eq_raqs_103,RAQS,ROOM_LEVEL,RAQS (Air Quality),Zone 103 Indoor Air Quality Sensor,RAQS_103.csv,rm_103,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_vav_103,VAV,ROOM_LEVEL,VAV Actuator,Zone 103 Belimo VAV-Compact Actuator LM24A-V,VAV_103.csv,rm_103,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_chiller_01,CHILLER,SHARED,Chiller-01,Central Chilled Water Plant 01,Chiller_01.csv,,bldg_01,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_ev_01,EV,SHARED,EV-01 (Energy Valve),Belimo Energy Valve Ultrasonic Meter,EV_01.csv,,bldg_01,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_ahu_01,AHU,SHARED,AHU-01,Air Handling Unit AHU-01 DX Loop,AHU_01.csv,,bldg_01,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
+eq_vav_046012,VAV,ROOM_LEVEL,TEST,TEST,YEST.CSV,rm_cd5832b9,,2026-11-14T18:09:59.016815+00:00,2026-11-14T18:09:59.016815+00:00

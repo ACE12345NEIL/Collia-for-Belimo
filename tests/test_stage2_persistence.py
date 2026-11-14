@@ -52,7 +52,7 @@ class TestStage2Persistence(unittest.TestCase):
         # Verify default topology loaded
         topology = self.service.get_system_topology()
         self.assertIsNotNone(topology.building)
-        self.assertEqual(topology.building.name, "Campus North — Building 04")
+        self.assertEqual(topology.building.name, "BELIMO CESIM House, Mumbai")
         self.assertEqual(len(topology.floors), 1)
         self.assertEqual(len(topology.rooms), 3)
         self.assertEqual(len(topology.room_equipment), 6)  # 3 VAVs + 3 RAQS

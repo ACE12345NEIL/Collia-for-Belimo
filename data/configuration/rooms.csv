@@ -1,3 +1,4 @@
 id,floor_id,name,room_number,area_sqm,description,created_at,updated_at
 rm_102,flr_01,102 - Open Work,102,85.0,Open Workspace Zone,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 rm_103,flr_01,103 - Exec. Office,103,32.0,Executive Office Suite,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
+rm_cd5832b9,flr_ea6df57a,104- LAB,104,45.0,TEST LAB,2026-11-14T18:09:32.467829+00:00,2026-11-14T18:09:32.467829+00:00

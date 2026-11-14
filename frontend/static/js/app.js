@@ -164,54 +164,74 @@ function renderSidebar() {
 
   if (roomsTree) {
     roomsTree.innerHTML = '';
-    rooms.forEach(room => {
-      const roomEq = (state.topology.room_equipment || []).filter(eq => eq.room_id === room.id);
-      const isSelected = state.selectedEntity && state.selectedEntity.id === room.id;
+    const floors = state.topology.floors || [];
 
-      const roomDiv = document.createElement('div');
-      roomDiv.className = `rounded border ${isSelected ? 'border-primary' : 'border-border-subtle'} bg-surface-base overflow-hidden`;
-      roomDiv.setAttribute('data-room-id', room.id);
+    // Group rooms by floor
+    floors.forEach(fl => {
+      const floorRooms = rooms.filter(r => r.floor_id === fl.id);
+      if (floorRooms.length === 0 && floors.length <= 1) return; // Skip header for single floor with no rooms
 
-      roomDiv.innerHTML = `
-        <div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('${room.id}')">
-          <div class="flex items-center gap-1 min-w-0" onclick="event.stopPropagation(); selectEntity('room', '${room.id}')">
-            <span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-${room.id}">chevron_right</span>
-            <span class="font-label-sm text-label-sm text-on-surface font-medium truncate">${room.name}</span>
+      // Floor group header label
+      if (floors.length > 1) {
+        const floorLabel = document.createElement('div');
+        floorLabel.className = 'flex items-center gap-1.5 px-1 py-1 mt-1 first:mt-0';
+        floorLabel.innerHTML = `
+          <span class="material-symbols-outlined text-[14px] text-secondary">layers</span>
+          <span class="font-code-xs text-code-xs text-secondary uppercase tracking-wider font-semibold">${fl.name} (Level ${fl.floor_number})</span>
+          <span class="flex-1 border-b border-border-subtle ml-1"></span>
+        `;
+        roomsTree.appendChild(floorLabel);
+      }
+
+      floorRooms.forEach(room => {
+        const roomEq = (state.topology.room_equipment || []).filter(eq => eq.room_id === room.id);
+        const isSelected = state.selectedEntity && state.selectedEntity.id === room.id;
+
+        const roomDiv = document.createElement('div');
+        roomDiv.className = `rounded border ${isSelected ? 'border-primary' : 'border-border-subtle'} bg-surface-base overflow-hidden`;
+        roomDiv.setAttribute('data-room-id', room.id);
+
+        roomDiv.innerHTML = `
+          <div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('${room.id}')">
+            <div class="flex items-center gap-1 min-w-0" onclick="event.stopPropagation(); selectEntity('room', '${room.id}')">
+              <span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-${room.id}">chevron_right</span>
+              <span class="font-label-sm text-label-sm text-on-surface font-medium truncate">${room.name}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded" onclick="event.stopPropagation(); selectEntity('room', '${room.id}')" title="Room Details">
+                <span class="material-symbols-outlined text-[14px]">tune</span>
+              </button>
+              <button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error rounded" onclick="event.stopPropagation(); deleteEntityPrompt('room', '${room.id}', '${room.name}')" title="Delete Room">
+                <span class="material-symbols-outlined text-[14px]">remove</span>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-1">
-            <button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded" onclick="event.stopPropagation(); selectEntity('room', '${room.id}')" title="Room Details">
-              <span class="material-symbols-outlined text-[14px]">tune</span>
-            </button>
-            <button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error rounded" onclick="event.stopPropagation(); deleteEntityPrompt('room', '${room.id}', '${room.name}')" title="Delete Room">
-              <span class="material-symbols-outlined text-[14px]">remove</span>
+          <div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-${room.id}">
+            ${roomEq.map(eq => {
+              const isEqSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
+              const isVav = eq.equipment_type === 'VAV';
+              return `
+                <div class="flex items-center justify-between px-2 py-1 rounded border ${isEqSelected ? 'border-primary bg-primary/5' : 'border-border-subtle/60 bg-surface-canvas hover:border-primary/50'} transition-colors group cursor-pointer" onclick="selectEntity('equipment', '${eq.id}')">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="material-symbols-outlined text-[15px] text-primary">${isVav ? 'hvac' : 'air'}</span>
+                    <span class="font-code-xs text-code-xs ${isEqSelected ? 'text-primary font-medium' : 'text-on-surface'} truncate">${eq.name}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    ${eq.csv_filename ? `<span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: ${eq.csv_filename}">${eq.csv_filename}</span>` : ''}
+                    <button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', '${eq.id}', '${eq.name}')">
+                      <span class="material-symbols-outlined text-[13px]">close</span>
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+            <button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="openAddRoomDeviceModal('${room.id}', '${room.name}')">
+              <span class="material-symbols-outlined text-[13px]">add</span> Add Device
             </button>
           </div>
-        </div>
-        <div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-${room.id}">
-          ${roomEq.map(eq => {
-            const isEqSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
-            const isVav = eq.equipment_type === 'VAV';
-            return `
-              <div class="flex items-center justify-between px-2 py-1 rounded border ${isEqSelected ? 'border-primary bg-primary/5' : 'border-border-subtle/60 bg-surface-canvas hover:border-primary/50'} transition-colors group cursor-pointer" onclick="selectEntity('equipment', '${eq.id}')">
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="material-symbols-outlined text-[15px] text-primary">${isVav ? 'hvac' : 'air'}</span>
-                  <span class="font-code-xs text-code-xs ${isEqSelected ? 'text-primary font-medium' : 'text-on-surface'} truncate">${eq.name}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                  ${eq.csv_filename ? `<span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: ${eq.csv_filename}">${eq.csv_filename}</span>` : ''}
-                  <button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', '${eq.id}', '${eq.name}')">
-                    <span class="material-symbols-outlined text-[13px]">close</span>
-                  </button>
-                </div>
-              </div>
-            `;
-          }).join('')}
-          <button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="openAddRoomDeviceModal('${room.id}', '${room.name}')">
-            <span class="material-symbols-outlined text-[13px]">add</span> Add Device
-          </button>
-        </div>
-      `;
-      roomsTree.appendChild(roomDiv);
+        `;
+        roomsTree.appendChild(roomDiv);
+      });
     });
   }
 
@@ -305,61 +325,115 @@ function renderCanvas() {
     });
   }
 
-  // 2. Render Rooms / Zones
+  // 2. Render Floors & Rooms / Zones — grouped by floor
   const zonesContainer = document.getElementById('zones-canvas-container');
   if (zonesContainer) {
     const rooms = state.topology.rooms || [];
+    const floors = state.topology.floors || [];
     zonesContainer.innerHTML = '';
 
+    // Group rooms by floor_id
+    const roomsByFloor = {};
+    floors.forEach(fl => { roomsByFloor[fl.id] = []; });
     rooms.forEach(room => {
-      const roomEq = (state.topology.room_equipment || []).filter(eq => eq.room_id === room.id);
-      const isRoomSelected = state.selectedEntity && state.selectedEntity.id === room.id;
+      if (roomsByFloor[room.floor_id]) {
+        roomsByFloor[room.floor_id].push(room);
+      }
+    });
 
-      const zoneDiv = document.createElement('div');
-      zoneDiv.className = `flex-1 min-w-[280px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto`;
-      zoneDiv.onclick = (e) => {
-        if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
-          selectEntity('room', room.id);
-        }
+    floors.forEach(floor => {
+      const floorRooms = roomsByFloor[floor.id] || [];
+      const isActiveFloor = state.activeFloorId === floor.id;
+      const isFloorSelected = state.selectedEntity && state.selectedEntity.id === floor.id;
+
+      const floorSection = document.createElement('div');
+      floorSection.className = `rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20' : isActiveFloor ? 'border-primary/30' : 'border-border-subtle'} bg-surface-base/70 p-4 transition-all`;
+
+      // Floor header
+      const floorHeader = document.createElement('div');
+      floorHeader.className = 'flex items-center justify-between pb-2 mb-3 border-b border-border-subtle cursor-pointer';
+      floorHeader.onclick = () => {
+        state.activeFloorId = floor.id;
+        selectEntity('floor', floor.id);
       };
-
-      zoneDiv.innerHTML = `
-        <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer">
-          <div class="flex items-center gap-1.5 min-w-0">
-            <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
-            <span class="font-label-md text-label-md font-semibold text-on-surface truncate">${room.name}</span>
-          </div>
-          <span class="font-code-xs text-[11px] text-secondary shrink-0">${room.area_sqm || 0} m²</span>
+      floorHeader.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px] ${isActiveFloor ? 'text-primary' : 'text-secondary'}">layers</span>
+          <span class="font-headline-sm text-headline-sm font-semibold ${isActiveFloor ? 'text-primary' : 'text-on-surface'}">${floor.name}</span>
+          <span class="px-2 py-0.5 rounded bg-surface-subtle border border-border-subtle font-code-xs text-[10px] text-secondary uppercase tracking-wider">Level ${floor.floor_number}</span>
         </div>
-        <div class="grid grid-cols-2 gap-2.5">
-          ${roomEq.map(eq => {
-            const isEqSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
-            const isVav = eq.equipment_type === 'VAV';
-
-            return `
-              <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
-                ${isEqSelected ? `<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>` : ''}
-                <div class="flex items-center justify-between mb-1">
-                  <span class="font-label-sm text-label-sm font-semibold ${isEqSelected ? 'text-primary font-bold' : 'text-on-surface'} truncate">${eq.equipment_type}</span>
-                  <span class="material-symbols-outlined text-[16px] ${isEqSelected ? 'text-primary' : 'text-secondary'}">${isVav ? 'hvac' : 'air'}</span>
-                </div>
-                <div class="font-code-xs text-[10px] text-secondary truncate">${eq.name}</div>
-                <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-                  <div class="flex justify-between font-code-xs text-[11px]">
-                    <span class="text-secondary">${isVav ? 'Airflow' : 'CO2'}:</span>
-                    <span class="font-semibold text-on-surface">${isVav ? 'Normal' : '420 ppm'}</span>
-                  </div>
-                  <div class="flex justify-between font-code-xs text-[11px]">
-                    <span class="text-secondary">CSV:</span>
-                    <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${eq.csv_filename || 'Not assigned'}">${eq.csv_filename || '—'}</span>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
+        <div class="flex items-center gap-2">
+          <span class="font-code-xs text-[11px] text-secondary">${floorRooms.length} ${floorRooms.length === 1 ? 'room' : 'rooms'}</span>
+          ${isActiveFloor ? '<span class="w-2 h-2 rounded-full bg-primary"></span>' : ''}
         </div>
       `;
-      zonesContainer.appendChild(zoneDiv);
+      floorSection.appendChild(floorHeader);
+
+      // Rooms row within this floor
+      if (floorRooms.length > 0) {
+        const roomsRow = document.createElement('div');
+        roomsRow.className = 'flex items-start gap-4 overflow-x-auto pb-1';
+
+        floorRooms.forEach(room => {
+          const roomEq = (state.topology.room_equipment || []).filter(eq => eq.room_id === room.id);
+          const isRoomSelected = state.selectedEntity && state.selectedEntity.id === room.id;
+
+          const zoneDiv = document.createElement('div');
+          zoneDiv.className = `flex-1 min-w-[260px] max-w-[320px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto`;
+          zoneDiv.onclick = (e) => {
+            if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
+              selectEntity('room', room.id);
+            }
+          };
+
+          zoneDiv.innerHTML = `
+            <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
+                <span class="font-label-md text-label-md font-semibold text-on-surface truncate">${room.name}</span>
+              </div>
+              <span class="font-code-xs text-[11px] text-secondary shrink-0">${room.area_sqm || 0} m²</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              ${roomEq.map(eq => {
+                const isEqSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
+                const isVav = eq.equipment_type === 'VAV';
+
+                return `
+                  <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
+                    ${isEqSelected ? '<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>' : ''}
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="font-label-sm text-label-sm font-semibold ${isEqSelected ? 'text-primary font-bold' : 'text-on-surface'} truncate">${eq.equipment_type}</span>
+                      <span class="material-symbols-outlined text-[16px] ${isEqSelected ? 'text-primary' : 'text-secondary'}">${isVav ? 'hvac' : 'air'}</span>
+                    </div>
+                    <div class="font-code-xs text-[10px] text-secondary truncate">${eq.name}</div>
+                    <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+                      <div class="flex justify-between font-code-xs text-[11px]">
+                        <span class="text-secondary">${isVav ? 'Airflow' : 'CO2'}:</span>
+                        <span class="font-semibold text-on-surface">${isVav ? 'Normal' : '—'}</span>
+                      </div>
+                      <div class="flex justify-between font-code-xs text-[11px]">
+                        <span class="text-secondary">CSV:</span>
+                        <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${eq.csv_filename || 'Not assigned'}">${eq.csv_filename || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+          roomsRow.appendChild(zoneDiv);
+        });
+
+        floorSection.appendChild(roomsRow);
+      } else {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'text-center py-4 text-secondary font-code-xs text-code-xs';
+        emptyMsg.textContent = 'No rooms configured on this floor. Use "Add Room" to create one.';
+        floorSection.appendChild(emptyMsg);
+      }
+
+      zonesContainer.appendChild(floorSection);
     });
   }
 }

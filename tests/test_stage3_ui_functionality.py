@@ -46,18 +46,31 @@ class TestStage3UIFunctionality(unittest.TestCase):
 
         # Verified ready indicator is removed
         self.assertNotIn('>Ready</div>', html)
+        self.assertNotIn('Canvas: Ready', html)
+
+        # Verified messy telemetry dotted lines are removed
+        self.assertNotIn('arrow-signal', html)
+
+        # Verified floor grouping container
+        self.assertIn('zones-canvas-container', html)
+
+        # Verified facility name default
+        self.assertIn('BELIMO CESIM House, Mumbai', html)
 
         # Script
         self.assertIn('/static/js/app.js', html)
 
     def test_static_app_js_served(self):
-        """Verifies app.js is properly mounted and served."""
+        """Verifies app.js is properly mounted and served with floor grouping."""
         resp = self.client.get("/static/js/app.js")
         self.assertEqual(resp.status_code, 200)
         self.assertIn("loadTopology", resp.text)
         self.assertIn("openDetailDrawer", resp.text)
         self.assertIn("submitAddRoom", resp.text)
         self.assertIn("submitAddRoomDevice", resp.text)
+        # Floor grouping in canvas
+        self.assertIn("roomsByFloor", resp.text)
+        self.assertIn("floorSection", resp.text)
         self.assertIn("submitAddPlant", resp.text)
 
     def test_e2e_creation_of_all_5_equipment_types(self):

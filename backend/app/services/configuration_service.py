@@ -726,8 +726,8 @@ class ConfigurationService:
         # 1. Primary Building
         bldg = Building(
             id="bldg_01",
-            name="Campus North — Building 04",
-            description="Belimo Commercial Facility Baseline",
+            name="BELIMO CESIM House, Mumbai",
+            description="Belimo India Customer Experience & Application Center (CESIM)",
             created_at=now,
             updated_at=now
         )

@@ -1,2 +1,3 @@
 id,building_id,name,floor_number,description,created_at,updated_at
 flr_01,bldg_01,Floor 1,1,Ground Level Commercial & Executive Suites,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
+flr_ea6df57a,bldg_01,F2,2,,2026-11-14T18:09:05.635914+00:00,2026-11-14T18:09:05.635914+00:00

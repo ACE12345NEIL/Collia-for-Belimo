@@ -41,7 +41,7 @@ async def read_root(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"facility_name": "Campus North — Building 04"}
+        context={"facility_name": "BELIMO CESIM House, Mumbai"}
     )
 
 
