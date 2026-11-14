@@ -38,6 +38,9 @@
 <!-- Rooms Accordion List -->
 <div class="flex flex-col gap-space-xs" id="rooms-tree">
 <!-- Dynamically populated from /api/topology -->
+<div class="rounded border border-border-subtle bg-surface-base overflow-hidden" data-room-id="rm_101"><div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('rm_101')"><div class="flex items-center gap-1 min-w-0" onclick="event.stopPropagation(); selectEntity('room', 'rm_101')"><span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-rm_101">chevron_right</span><span class="font-label-sm text-label-sm text-on-surface font-medium truncate">101 - Conf. North</span></div><div class="flex items-center gap-1"><button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded" onclick="event.stopPropagation(); selectEntity('room', 'rm_101')" title="Room Details"><span class="material-symbols-outlined text-[14px]">tune</span></button><button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error rounded" onclick="event.stopPropagation(); deleteEntityPrompt('room', 'rm_101', '101 - Conf. North')" title="Delete Room"><span class="material-symbols-outlined text-[14px]">remove</span></button></div></div><div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-rm_101"><div class="flex items-center justify-between px-2 py-1 rounded border border-border-subtle/60 bg-surface-canvas hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectEntity('equipment', 'eq_raqs_101')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">air</span><span class="font-code-xs text-code-xs text-on-surface truncate">RAQS (Air Quality)</span></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: RAQS_101.csv">RAQS_101.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_raqs_101', 'RAQS (Air Quality)')"><span class="material-symbols-outlined text-[13px]">close</span></button></div></div><div class="flex items-center justify-between px-2 py-1 rounded border border-primary bg-primary/5 transition-colors group cursor-pointer" onclick="selectEntity('equipment', 'eq_vav_101')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">hvac</span><span class="font-code-xs text-code-xs text-primary font-medium truncate">VAV Actuator</span></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: VAV_101.csv">VAV_101.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_vav_101', 'VAV Actuator')"><span class="material-symbols-outlined text-[13px]">close</span></button></div></div><button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="openAddRoomDeviceModal('rm_101', '101 - Conf. North')"><span class="material-symbols-outlined text-[13px]">add</span> Add Device</button></div></div>
+<div class="rounded border border-border-subtle bg-surface-base overflow-hidden" data-room-id="rm_102"><div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('rm_102')"><div class="flex items-center gap-1 min-w-0" onclick="event.stopPropagation(); selectEntity('room', 'rm_102')"><span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-rm_102">chevron_right</span><span class="font-label-sm text-label-sm text-on-surface font-medium truncate">102 - Open Work</span></div><div class="flex items-center gap-1"><button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded" onclick="event.stopPropagation(); selectEntity('room', 'rm_102')" title="Room Details"><span class="material-symbols-outlined text-[14px]">tune</span></button><button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error rounded" onclick="event.stopPropagation(); deleteEntityPrompt('room', 'rm_102', '102 - Open Work')" title="Delete Room"><span class="material-symbols-outlined text-[14px]">remove</span></button></div></div><div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-rm_102"><div class="flex items-center justify-between px-2 py-1 rounded border border-border-subtle/60 bg-surface-canvas hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectEntity('equipment', 'eq_raqs_102')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">air</span><span class="font-code-xs text-code-xs text-on-surface truncate">RAQS (Air Quality)</span></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: RAQS_102.csv">RAQS_102.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_raqs_102', 'RAQS (Air Quality)')"><span class="material-symbols-outlined text-[13px]">close</span></button></div></div><div class="flex items-center justify-between px-2 py-1 rounded border border-border-subtle/60 bg-surface-canvas hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectEntity('equipment', 'eq_vav_102')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">hvac</span><span class="font-code-xs text-code-xs text-on-surface truncate">VAV Actuator</span></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: VAV_102.csv">VAV_102.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_vav_102', 'VAV Actuator')"><span class="material-symbols-outlined text-[13px]">close</span></button></div></div><button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="openAddRoomDeviceModal('rm_102', '102 - Open Work')"><span class="material-symbols-outlined text-[13px]">add</span> Add Device</button></div></div>
+<div class="rounded border border-border-subtle bg-surface-base overflow-hidden" data-room-id="rm_103"><div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('rm_103')"><div class="flex items-center gap-1 min-w-0" onclick="event.stopPropagation(); selectEntity('room', 'rm_103')"><span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-rm_103">chevron_right</span><span class="font-label-sm text-label-sm text-on-surface font-medium truncate">103 - Exec. Office</span></div><div class="flex items-center gap-1"><button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded" onclick="event.stopPropagation(); selectEntity('room', 'rm_103')" title="Room Details"><span class="material-symbols-outlined text-[14px]">tune</span></button><button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-error rounded" onclick="event.stopPropagation(); deleteEntityPrompt('room', 'rm_103', '103 - Exec. Office')" title="Delete Room"><span class="material-symbols-outlined text-[14px]">remove</span></button></div></div><div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-rm_103"><div class="flex items-center justify-between px-2 py-1 rounded border border-border-subtle/60 bg-surface-canvas hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectEntity('equipment', 'eq_raqs_103')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">air</span><span class="font-code-xs text-code-xs text-on-surface truncate">RAQS (Air Quality)</span></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: RAQS_103.csv">RAQS_103.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_raqs_103', 'RAQS (Air Quality)')"><span class="material-symbols-outlined text-[13px]">close</span></button></div></div><div class="flex items-center justify-between px-2 py-1 rounded border border-border-subtle/60 bg-surface-canvas hover:border-primary/50 transition-colors group cursor-pointer" onclick="selectEntity('equipment', 'eq_vav_103')"><div class="flex items-center gap-1.5 min-w-0"><span class="material-symbols-outlined text-[15px] text-primary">hvac</span><span class="font-code-xs text-code-xs text-on-surface truncate">VAV Actuator</span></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: VAV_103.csv">VAV_103.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_vav_103', 'VAV Actuator')"><span class="material-symbols-outlined text-[13px]">close</span></button></div></div><button class="w-full text-center py-1 mt-0.5 text-secondary hover:text-primary font-code-xs text-code-xs border border-dashed border-border-subtle rounded hover:border-primary/40 bg-surface-canvas/50 transition-all flex items-center justify-center gap-1" onclick="openAddRoomDeviceModal('rm_103', '103 - Exec. Office')"><span class="material-symbols-outlined text-[13px]">add</span> Add Device</button></div></div>
 </div>
 </div>
 <!-- EQUIPMENT SECTION -->
@@ -45,14 +48,17 @@
 <div class="flex items-center justify-between pb-space-xs border-b border-border-subtle mb-space-sm">
 <div class="flex items-center gap-space-xs">
 <span class="font-label-md text-label-md text-on-surface font-semibold tracking-tight uppercase">Equipment</span>
-<span class="px-1.5 py-0.5 rounded bg-surface-subtle font-code-xs text-code-xs text-secondary border border-border-subtle">3 Plant Units</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-subtle font-code-xs text-code-xs text-secondary border border-border-subtle" id="shared-counter-badge">3 Plant Units</span>
 </div>
 <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-surface-subtle text-secondary hover:text-primary transition-colors" id="btn-add-eq" title="Add Plant Equipment">
 <span class="material-symbols-outlined text-[18px]">add</span>
 </button>
 </div>
-<div class="flex flex-col gap-1.5">
+<div class="flex flex-col gap-1.5" id="shared-equipment-list">
 <!-- Dynamically populated from /api/topology -->
+<div class="flex items-center justify-between px-2.5 py-1.5 rounded border border-border-subtle bg-surface-canvas hover:border-border-strong cursor-pointer group transition-colors" onclick="selectEntity('equipment', 'eq_chiller_01')"><div class="flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-[18px] text-secondary group-hover:text-primary transition-colors">ac_unit</span><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-on-surface font-medium truncate">Chiller-01</span><span class="font-code-xs text-code-xs text-secondary truncate">Central Chilled Loop</span></div></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: Chiller_01.csv">Chiller_01.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_chiller_01', 'Chiller-01')"><span class="material-symbols-outlined text-[14px]">remove</span></button></div></div>
+<div class="flex items-center justify-between px-2.5 py-1.5 rounded border border-border-subtle bg-surface-canvas hover:border-border-strong cursor-pointer group transition-colors" onclick="selectEntity('equipment', 'eq_ev_01')"><div class="flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-[18px] text-primary transition-colors">speed</span><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-on-surface font-medium truncate">EV-01 (Energy Valve)</span><span class="font-code-xs text-code-xs text-secondary truncate">Ultrasonic BTU Meter</span></div></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: EV_01.csv">EV_01.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_ev_01', 'EV-01 (Energy Valve)')"><span class="material-symbols-outlined text-[14px]">remove</span></button></div></div>
+<div class="flex items-center justify-between px-2.5 py-1.5 rounded border border-border-subtle bg-surface-canvas hover:border-border-strong cursor-pointer group transition-colors" onclick="selectEntity('equipment', 'eq_ahu_01')"><div class="flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-[18px] text-secondary group-hover:text-primary transition-colors">mode_fan</span><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-on-surface font-medium truncate">AHU-01</span><span class="font-code-xs text-code-xs text-secondary truncate">Air Handling Unit</span></div></div><div class="flex items-center gap-1"><span class="font-code-xs text-[9px] text-secondary bg-surface-subtle px-1 py-0.2 rounded border border-border-subtle truncate max-w-[80px]" title="CSV: AHU_01.csv">AHU_01.csv</span><button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('equipment', 'eq_ahu_01', 'AHU-01')"><span class="material-symbols-outlined text-[14px]">remove</span></button></div></div>
 </div>
 </div>
 </div>
@@ -121,13 +127,122 @@
 <span class="px-1.5 py-0.5 rounded bg-surface-subtle border border-border-subtle font-code-xs text-[10px] text-secondary">Active Plant</span>
 </div>
 <!-- Plant Components Flex -->
-<div class="flex items-center justify-between mt-3 px-2">
-<!-- Dynamically populated from /api/topology -->
+<div class="flex items-center justify-between mt-3 px-2" id="plant-components-container">
+  <!-- CHILLER-01 -->
+  <div class="w-[125px] p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_chiller_01" onclick="selectCanvasElement('node-eq_chiller_01')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface truncate">Chiller-01</span><span class="material-symbols-outlined text-[16px] text-secondary">ac_unit</span></div><div class="font-code-xs text-[11px] text-secondary truncate">Central Chiller</div><div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div></div>
+  <!-- ENERGY VALVE EV-01 -->
+  <div class="w-[145px] p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_ev_01" onclick="selectCanvasElement('node-eq_ev_01')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-primary truncate">EV-01</span><span class="material-symbols-outlined text-[16px] text-primary">speed</span></div><div class="font-code-xs text-[11px] text-on-surface truncate">Energy Valve</div><div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div></div>
+  <!-- AHU-01 -->
+  <div class="w-[140px] p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_ahu_01" onclick="selectCanvasElement('node-eq_ahu_01')"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm font-semibold text-on-surface truncate">AHU-01</span><span class="material-symbols-outlined text-[16px] text-secondary">mode_fan</span></div><div class="font-code-xs text-[11px] text-secondary truncate">Air Handling Unit</div><div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-on-surface"><span class="">Supply Fan</span><span class="text-status-success font-medium">Auto</span></div></div>
 </div>
 </div>
 <!-- ARCHITECTURAL ZONES / ROOM CONTAINERS -->
-<div class="absolute left-6 top-[280px] right-6 flex items-start gap-6 overflow-x-auto pb-4">
-<!-- Dynamically populated from /api/topology -->
+<div class="absolute left-6 top-[280px] right-6 flex items-start gap-6 overflow-x-auto pb-4" id="zones-canvas-container">
+  <!-- ZONE 101 -->
+  <div class="flex-1 min-w-[280px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs">
+    <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_101')">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
+        <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 101 [Conference]</span>
+      </div>
+      <span class="font-code-xs text-[11px] text-secondary shrink-0">38 m²</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2.5">
+      <div class="p-2.5 rounded bg-primary/5 border-2 border-primary transition-all cursor-pointer relative group shadow-sm ring-2 ring-primary/20" id="node-eq_vav_101" onclick="selectCanvasElement('node-eq_vav_101')">
+        <div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-label-sm text-label-sm font-bold text-primary">VAV</span>
+          <span class="material-symbols-outlined text-[16px] text-primary">hvac</span>
+        </div>
+        <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
+        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">45%</span></div>
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">240 CFM</span></div>
+        </div>
+      </div>
+      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_raqs_101" onclick="selectCanvasElement('node-eq_raqs_101')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
+          <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
+        </div>
+        <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
+        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">420 ppm</span></div>
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.5°C</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE 102 -->
+  <div class="flex-1 min-w-[280px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs">
+    <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_102')">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="material-symbols-outlined text-[16px] text-secondary">grid_view</span>
+        <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 102 [Open Office]</span>
+      </div>
+      <span class="font-code-xs text-[11px] text-secondary shrink-0">85 m²</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2.5">
+      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_vav_102" onclick="selectCanvasElement('node-eq_vav_102')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span>
+          <span class="material-symbols-outlined text-[16px] text-secondary">hvac</span>
+        </div>
+        <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
+        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">68%</span></div>
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">380 CFM</span></div>
+        </div>
+      </div>
+      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_raqs_102" onclick="selectCanvasElement('node-eq_raqs_102')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
+          <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
+        </div>
+        <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
+        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-status-warning">580 ppm</span></div>
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">22.8°C</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE 103 -->
+  <div class="flex-1 min-w-[280px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs">
+    <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_103')">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="material-symbols-outlined text-[16px] text-secondary">shield_person</span>
+        <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 103 [Exec]</span>
+      </div>
+      <span class="font-code-xs text-[11px] text-secondary shrink-0">32 m²</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2.5">
+      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_vav_103" onclick="selectCanvasElement('node-eq_vav_103')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span>
+          <span class="material-symbols-outlined text-[16px] text-secondary">hvac</span>
+        </div>
+        <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
+        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">30%</span></div>
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">200 CFM</span></div>
+        </div>
+      </div>
+      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group" id="node-eq_raqs_103" onclick="selectCanvasElement('node-eq_raqs_103')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
+          <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
+        </div>
+        <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
+        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">395 ppm</span></div>
+          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.0°C</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 </div>
@@ -135,7 +250,7 @@
 <div class="w-full bg-surface-base border-t border-border-subtle px-gutter-desktop py-2 flex items-center justify-between text-secondary font-code-xs text-code-xs">
   <div class="flex items-center gap-2">
     <span class="material-symbols-outlined text-[16px] text-primary">info</span>
-    <span id="active-selection-label">Select any room, device, or plant unit to view details.</span>
+    <span id="active-selection-label">Active Selection: Belimo VAV-Compact Actuator LM24A-V (Zone 101)</span>
   </div>
   <div class="flex items-center gap-3">
     <span>Canvas: Ready</span>

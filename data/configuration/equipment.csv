@@ -2,7 +2,6 @@ id,equipment_type,category,name,description,csv_filename,room_id,building_id,cre
 eq_raqs_101,RAQS,ROOM_LEVEL,RAQS (Air Quality),Zone 101 Indoor Air Quality Sensor,RAQS_101.csv,rm_101,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_vav_101,VAV,ROOM_LEVEL,VAV Actuator,Zone 101 Belimo VAV-Compact Actuator LM24A-V,VAV_101.csv,rm_101,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_raqs_102,RAQS,ROOM_LEVEL,RAQS (Air Quality),Zone 102 Indoor Air Quality Sensor,RAQS_102.csv,rm_102,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
-eq_vav_102,VAV,ROOM_LEVEL,VAV Actuator,Zone 102 Belimo VAV-Compact Actuator LM24A-V,VAV_102.csv,rm_102,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_raqs_103,RAQS,ROOM_LEVEL,RAQS (Air Quality),Zone 103 Indoor Air Quality Sensor,RAQS_103.csv,rm_103,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_vav_103,VAV,ROOM_LEVEL,VAV Actuator,Zone 103 Belimo VAV-Compact Actuator LM24A-V,VAV_103.csv,rm_103,,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00
 eq_chiller_01,CHILLER,SHARED,Chiller-01,Central Chilled Water Plant 01,Chiller_01.csv,,bldg_01,2026-11-14T17:16:35.670633+00:00,2026-11-14T17:16:35.670633+00:00

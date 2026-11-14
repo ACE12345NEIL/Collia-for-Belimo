@@ -142,7 +142,7 @@ function renderSidebar() {
             return `
               <div class="flex items-center justify-between px-2 py-1 rounded border ${isEqSelected ? 'border-primary bg-primary/5' : 'border-border-subtle/60 bg-surface-canvas hover:border-primary/50'} transition-colors group cursor-pointer" onclick="selectEntity('equipment', '${eq.id}')">
                 <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="material-symbols-outlined text-[15px] ${isEqSelected ? 'text-primary' : 'text-primary'}">${isVav ? 'hvac' : 'air'}</span>
+                  <span class="material-symbols-outlined text-[15px] text-primary">${isVav ? 'hvac' : 'air'}</span>
                   <span class="font-code-xs text-code-xs ${isEqSelected ? 'text-primary font-medium' : 'text-on-surface'} truncate">${eq.name}</span>
                 </div>
                 <div class="flex items-center gap-1">
@@ -164,11 +164,11 @@ function renderSidebar() {
   }
 
   // 2. Shared Plant units
-  const sharedList = document.querySelector('aside .flex.flex-col.gap-1\\.5');
-  const sharedBadge = document.querySelector('aside span:has-text("Plant Units")') || document.querySelector('aside .px-1\\.5.py-0\\.5.rounded.bg-surface-subtle.font-code-xs');
+  const sharedList = document.getElementById('shared-equipment-list');
+  const sharedBadge = document.getElementById('shared-counter-badge');
   const sharedEq = state.topology.shared_equipment || [];
 
-  if (sharedBadge && sharedBadge.innerText.includes('Plant Units')) {
+  if (sharedBadge) {
     sharedBadge.innerText = `${sharedEq.length} Plant Units`;
   }
 
@@ -211,7 +211,7 @@ function renderCanvas() {
   if (!state.topology) return;
 
   // 1. Render Plant components
-  const plantContainer = document.querySelector('.absolute.left-6.top-4 .flex.items-center.justify-between.mt-3.px-2');
+  const plantContainer = document.getElementById('plant-components-container');
   if (plantContainer) {
     const sharedEq = state.topology.shared_equipment || [];
     plantContainer.innerHTML = '';
@@ -220,21 +220,24 @@ function renderCanvas() {
       const isSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
       let icon = 'mode_fan';
       let sublabel = 'Air Handling Unit';
+      let cardWidth = 'w-[140px]';
       let statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-on-surface"><span class="">Supply Fan</span><span class="text-status-success font-medium">Auto</span></div>`;
 
       if (eq.equipment_type === 'CHILLER') {
         icon = 'ac_unit';
         sublabel = 'Central Chiller';
+        cardWidth = 'w-[125px]';
         statHtml = `<div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div>`;
       } else if (eq.equipment_type === 'EV') {
         icon = 'speed';
         sublabel = 'Energy Valve';
+        cardWidth = 'w-[145px]';
         statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div>`;
       }
 
       const card = document.createElement('div');
       card.id = `node-${eq.id}`;
-      card.className = `w-[135px] p-2.5 rounded ${isSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group`;
+      card.className = `${cardWidth} p-2.5 rounded ${isSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group`;
       card.onclick = () => selectEntity('equipment', eq.id);
 
       card.innerHTML = `
@@ -251,7 +254,7 @@ function renderCanvas() {
   }
 
   // 2. Render Rooms / Zones
-  const zonesContainer = document.querySelector('.absolute.left-6.top-\\[280px\\].right-6');
+  const zonesContainer = document.getElementById('zones-canvas-container');
   if (zonesContainer) {
     const rooms = state.topology.rooms || [];
     zonesContainer.innerHTML = '';
@@ -261,16 +264,15 @@ function renderCanvas() {
       const isRoomSelected = state.selectedEntity && state.selectedEntity.id === room.id;
 
       const zoneDiv = document.createElement('div');
-      zoneDiv.className = `flex-1 min-w-[260px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs cursor-pointer transition-all`;
+      zoneDiv.className = `flex-1 min-w-[280px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all`;
       zoneDiv.onclick = (e) => {
-        // Only select room if clicked on container background
         if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
           selectEntity('room', room.id);
         }
       };
 
       zoneDiv.innerHTML = `
-        <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header">
+        <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer">
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
             <span class="font-label-md text-label-md font-semibold text-on-surface truncate">${room.name}</span>
@@ -342,6 +344,31 @@ function selectEntity(type, id) {
   openDetailDrawer(type, state.selectedEntity);
 }
 
+// Support selecting by node element id (e.g. node-eq_vav_101 or node-vav-101)
+function selectCanvasElement(nodeId) {
+  if (!nodeId) return;
+  const cleanId = nodeId.replace(/^node-/, '');
+
+  // Look for direct equipment ID match
+  const allEq = (state.topology?.room_equipment || []).concat(state.topology?.shared_equipment || []);
+  let found = allEq.find(e => e.id === cleanId);
+
+  // If not found, try flexible matching (e.g. vav-101 -> eq_vav_101)
+  if (!found) {
+    found = allEq.find(e => e.id.includes(cleanId) || cleanId.includes(e.id.replace('eq_', '')));
+  }
+
+  if (found) {
+    selectEntity('equipment', found.id);
+  } else {
+    // Check if it's a room
+    const room = (state.topology?.rooms || []).find(r => r.id === cleanId || cleanId.includes(r.id.replace('rm_', '')));
+    if (room) {
+      selectEntity('room', room.id);
+    }
+  }
+}
+
 function refreshSelectedEntity() {
   if (!state.selectedEntity || !state.selectedType) return;
   selectEntity(state.selectedType, state.selectedEntity.id);
@@ -389,7 +416,7 @@ function openDetailDrawer(type, entity) {
 
       if (entity.category === 'ROOM_LEVEL' && roomSelect) {
         roomSelectContainer.classList.remove('hidden');
-        roomSelect.innerHTML = (state.topology.rooms || []).map(r => `
+        roomSelect.innerHTML = (state.topology?.rooms || []).map(r => `
           <option value="${r.id}" ${r.id === entity.room_id ? 'selected' : ''}>${r.name}</option>
         `).join('');
       } else if (roomSelectContainer) {
@@ -415,7 +442,7 @@ function openDetailDrawer(type, entity) {
 
   // Populate relationships
   if (relationsContainer) {
-    const rels = (state.topology.relationships || []).filter(r => r.source_id === entity.id || r.target_id === entity.id);
+    const rels = (state.topology?.relationships || []).filter(r => r.source_id === entity.id || r.target_id === entity.id);
     if (rels.length === 0) {
       relationsContainer.innerHTML = `<span class="font-code-xs text-code-xs text-secondary">No direct graph links configured.</span>`;
     } else {
