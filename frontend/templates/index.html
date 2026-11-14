@@ -167,107 +167,120 @@
 </div>
 <!-- ARCHITECTURAL ZONES / ROOM CONTAINERS (z-10) -->
 <div class="absolute left-6 top-[280px] right-6 flex items-start gap-6 overflow-x-auto pb-6 z-10" id="zones-canvas-container">
-  <!-- ZONE 101 -->
-  <div class="flex-1 min-w-[280px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs pointer-events-auto">
-    <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_101')">
-      <div class="flex items-center gap-1.5 min-w-0">
-        <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
-        <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 101 [Conference]</span>
-      </div>
-      <span class="font-code-xs text-[11px] text-secondary shrink-0">38 m²</span>
+  <!-- Floor Breakdown Box-like Border Container -->
+  <div class="floor-group-container relative rounded-lg border-2 border-border-strong/70 bg-surface-base/50 pt-4 pb-3 px-3 flex flex-col gap-2 shrink-0 transition-all shadow-xs" id="floor-box-flr_01">
+    <!-- Floor Breakdown Badge on top-left border -->
+    <div class="absolute -top-3 left-3 bg-surface-base px-2.5 py-0.5 border border-border-strong rounded font-label-sm text-label-sm font-semibold text-on-surface flex items-center gap-1.5 shadow-xs cursor-pointer select-none" onclick="selectEntity('floor', 'flr_01')" title="Click to view/edit Floor details">
+      <span class="material-symbols-outlined text-[15px] text-primary">layers</span>
+      <span class="uppercase tracking-wide">Floor 1</span>
+      <span class="text-border-strong font-normal">|</span>
+      <span class="font-code-xs text-[10px] text-secondary">Level 1</span>
+      <span class="ml-1 px-1.5 py-0.2 rounded bg-primary/10 text-primary font-code-xs text-[9px] font-bold">3 Rooms</span>
     </div>
-    <div class="grid grid-cols-2 gap-2.5">
-      <div class="p-2.5 rounded bg-primary/5 border-2 border-primary transition-all cursor-pointer relative group shadow-sm ring-2 ring-primary/20 pointer-events-auto" id="node-eq_vav_101" onclick="selectCanvasElement('node-eq_vav_101')">
-        <div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-bold text-primary">VAV</span>
-          <span class="material-symbols-outlined text-[16px] text-primary">hvac</span>
+    <div class="flex items-start gap-4">
+      <!-- ZONE 101 -->
+      <div class="min-w-[280px] max-w-[340px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs pointer-events-auto shrink-0" id="room-card-rm_101">
+        <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_101')">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
+            <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 101 [Conference]</span>
+          </div>
+          <span class="font-code-xs text-[11px] text-secondary shrink-0">38 m²</span>
         </div>
-        <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
-        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">45%</span></div>
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">Normal</span></div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="p-2.5 rounded bg-primary/5 border-2 border-primary transition-all cursor-pointer relative group shadow-sm ring-2 ring-primary/20 pointer-events-auto" id="node-eq_vav_101" onclick="selectCanvasElement('node-eq_vav_101')">
+            <div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-label-sm text-label-sm font-bold text-primary">VAV</span>
+              <span class="material-symbols-outlined text-[16px] text-primary">hvac</span>
+            </div>
+            <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
+            <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">45%</span></div>
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">Normal</span></div>
+            </div>
+          </div>
+          <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_raqs_101" onclick="selectCanvasElement('node-eq_raqs_101')">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
+            </div>
+            <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
+            <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">420 ppm</span></div>
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.5°C</span></div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_raqs_101" onclick="selectCanvasElement('node-eq_raqs_101')">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
-          <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
-        </div>
-        <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
-        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">420 ppm</span></div>
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.5°C</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ZONE 102 -->
-  <div class="flex-1 min-w-[280px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs pointer-events-auto">
-    <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_102')">
-      <div class="flex items-center gap-1.5 min-w-0">
-        <span class="material-symbols-outlined text-[16px] text-secondary">grid_view</span>
-        <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 102 [Open Office]</span>
+      <!-- ZONE 102 -->
+      <div class="min-w-[280px] max-w-[340px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs pointer-events-auto shrink-0" id="room-card-rm_102">
+        <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_102')">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="material-symbols-outlined text-[16px] text-secondary">grid_view</span>
+            <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 102 [Open Office]</span>
+          </div>
+          <span class="font-code-xs text-[11px] text-secondary shrink-0">85 m²</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_vav_102" onclick="selectCanvasElement('node-eq_vav_102')">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary">hvac</span>
+            </div>
+            <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
+            <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">68%</span></div>
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">Normal</span></div>
+            </div>
+          </div>
+          <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_raqs_102" onclick="selectCanvasElement('node-eq_raqs_102')">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
+            </div>
+            <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
+            <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-status-warning">580 ppm</span></div>
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">22.8°C</span></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <span class="font-code-xs text-[11px] text-secondary shrink-0">85 m²</span>
-    </div>
-    <div class="grid grid-cols-2 gap-2.5">
-      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_vav_102" onclick="selectCanvasElement('node-eq_vav_102')">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span>
-          <span class="material-symbols-outlined text-[16px] text-secondary">hvac</span>
-        </div>
-        <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
-        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">68%</span></div>
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">Normal</span></div>
-        </div>
-      </div>
-      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_raqs_102" onclick="selectCanvasElement('node-eq_raqs_102')">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
-          <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
-        </div>
-        <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
-        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-status-warning">580 ppm</span></div>
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">22.8°C</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ZONE 103 -->
-  <div class="flex-1 min-w-[280px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs pointer-events-auto">
-    <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_103')">
-      <div class="flex items-center gap-1.5 min-w-0">
-        <span class="material-symbols-outlined text-[16px] text-secondary">shield_person</span>
-        <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 103 [Exec]</span>
-      </div>
-      <span class="font-code-xs text-[11px] text-secondary shrink-0">32 m²</span>
-    </div>
-    <div class="grid grid-cols-2 gap-2.5">
-      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_vav_103" onclick="selectCanvasElement('node-eq_vav_103')">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span>
-          <span class="material-symbols-outlined text-[16px] text-secondary">hvac</span>
+      <!-- ZONE 103 -->
+      <div class="min-w-[280px] max-w-[340px] rounded border border-border-subtle bg-surface-base p-3 shadow-xs pointer-events-auto shrink-0" id="room-card-rm_103">
+        <div class="flex items-center justify-between pb-2 border-b border-border-subtle mb-3 room-card-header cursor-pointer" onclick="selectEntity('room', 'rm_103')">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="material-symbols-outlined text-[16px] text-secondary">shield_person</span>
+            <span class="font-label-md text-label-md font-semibold text-on-surface truncate">Zone 103 [Exec]</span>
+          </div>
+          <span class="font-code-xs text-[11px] text-secondary shrink-0">32 m²</span>
         </div>
-        <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
-        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">30%</span></div>
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">Normal</span></div>
-        </div>
-      </div>
-      <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_raqs_103" onclick="selectCanvasElement('node-eq_raqs_103')">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
-          <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
-        </div>
-        <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
-        <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">395 ppm</span></div>
-          <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.0°C</span></div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_vav_103" onclick="selectCanvasElement('node-eq_vav_103')">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-label-sm text-label-sm font-semibold text-on-surface">VAV</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary">hvac</span>
+            </div>
+            <div class="font-code-xs text-[10px] text-secondary truncate">Terminal Actuator</div>
+            <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Position:</span><span class="font-semibold text-on-surface">30%</span></div>
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Airflow:</span><span class="font-semibold text-on-surface">Normal</span></div>
+            </div>
+          </div>
+          <div class="p-2.5 rounded bg-surface-canvas border border-border-strong hover:border-primary transition-all cursor-pointer relative group pointer-events-auto" id="node-eq_raqs_103" onclick="selectCanvasElement('node-eq_raqs_103')">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-label-sm text-label-sm font-semibold text-on-surface">RAQS</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary">air</span>
+            </div>
+            <div class="font-code-xs text-[10px] text-secondary truncate">Air Quality Sensor</div>
+            <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">CO2:</span><span class="font-semibold text-on-surface">395 ppm</span></div>
+              <div class="flex justify-between font-code-xs text-[11px]"><span class="text-secondary">Temp:</span><span class="font-semibold text-on-surface">21.0°C</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -330,7 +330,7 @@ function renderCanvas() {
     });
   }
 
-  // 2. Render Rooms / Zones in a clean horizontal strip (as in index.html reference)
+  // 2. Render Floors & Rooms breakdown in System Layout (Box-like border per floor)
   const zonesContainer = document.getElementById('zones-canvas-container');
   if (zonesContainer) {
     const rooms = state.topology.rooms || [];
@@ -350,8 +350,35 @@ function renderCanvas() {
     Object.keys(roomsByFloor).forEach(floorId => {
       const floorRooms = roomsByFloor[floorId];
       if (!floorRooms || floorRooms.length === 0) return;
-      const floorObj = floors.find(f => f.id === floorId) || { name: `Floor ${floorId}` };
+      const floorObj = floors.find(f => f.id === floorId) || { name: `Floor ${floorId}`, floor_number: 1 };
       const floorSection = floorObj.name;
+      const isFloorSelected = state.selectedEntity && state.selectedEntity.id === floorId;
+
+      // Floor Breakdown Box-like Border Container
+      const floorBox = document.createElement('div');
+      floorBox.id = `floor-box-${floorId}`;
+      floorBox.className = `floor-group-container relative rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border-strong/70 bg-surface-base/50'} pt-4 pb-3 px-3 flex flex-col gap-2 shrink-0 transition-all shadow-xs`;
+
+      // Floor Breakdown Badge on top-left border
+      const floorBadge = document.createElement('div');
+      floorBadge.className = 'absolute -top-3 left-3 bg-surface-base px-2.5 py-0.5 border border-border-strong rounded font-label-sm text-label-sm font-semibold text-on-surface flex items-center gap-1.5 shadow-xs cursor-pointer select-none hover:border-primary hover:text-primary transition-colors';
+      floorBadge.title = 'Click to view/edit Floor details';
+      floorBadge.onclick = (e) => {
+        e.stopPropagation();
+        selectEntity('floor', floorId);
+      };
+      floorBadge.innerHTML = `
+        <span class="material-symbols-outlined text-[15px] text-primary">layers</span>
+        <span class="uppercase tracking-wide">${floorSection}</span>
+        <span class="text-border-strong font-normal">|</span>
+        <span class="font-code-xs text-[10px] text-secondary">Level ${floorObj.floor_number || 1}</span>
+        <span class="ml-1 px-1.5 py-0.2 rounded bg-primary/10 text-primary font-code-xs text-[9px] font-bold">${floorRooms.length} ${floorRooms.length === 1 ? 'Room' : 'Rooms'}</span>
+      `;
+      floorBox.appendChild(floorBadge);
+
+      // Rooms row inside this floor box
+      const roomsRow = document.createElement('div');
+      roomsRow.className = 'flex items-start gap-4';
 
       floorRooms.forEach(room => {
         const thisRoomEq = roomEq.filter(eq => eq.room_id === room.id);
@@ -361,7 +388,7 @@ function renderCanvas() {
 
         const zoneDiv = document.createElement('div');
         zoneDiv.id = `room-card-${room.id}`;
-        zoneDiv.className = `flex-1 min-w-[280px] max-w-[340px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto shrink-0`;
+        zoneDiv.className = `min-w-[280px] max-w-[340px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto shrink-0`;
         zoneDiv.onclick = (e) => {
           if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
             selectEntity('room', room.id);
@@ -373,7 +400,6 @@ function renderCanvas() {
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="material-symbols-outlined text-[16px] text-secondary">meeting_room</span>
               <span class="font-label-md text-label-md font-semibold text-on-surface truncate">${room.name}</span>
-              <span class="px-1.5 py-0.2 rounded bg-primary/10 text-primary font-code-xs text-[9px] font-semibold uppercase tracking-wider shrink-0" title="Floor: ${floorSection}">${floorSection}</span>
             </div>
             <span class="font-code-xs text-[11px] text-secondary shrink-0">${room.area_sqm || 0} m²</span>
           </div>
@@ -430,8 +456,11 @@ function renderCanvas() {
             `}
           </div>
         `;
-        zonesContainer.appendChild(zoneDiv);
+        roomsRow.appendChild(zoneDiv);
       });
+
+      floorBox.appendChild(roomsRow);
+      zonesContainer.appendChild(floorBox);
     });
   }
 
@@ -538,7 +567,7 @@ function updateCanvasSchematicArrows() {
 
   // 2. Supply Air Duct: AHU exit -> y=230 manifold -> connects to ALL rooms
   if (ahu) {
-    const roomDivs = Array.from(document.querySelectorAll('#zones-canvas-container > div'));
+    const roomDivs = Array.from(document.querySelectorAll('#zones-canvas-container [id^="room-card-"]'));
     const trunkY = Math.round(ahu.centerY);
     const riserX = 710;
     const manifoldY = 230;
@@ -554,8 +583,10 @@ function updateCanvasSchematicArrows() {
     if (roomDivs.length > 0) {
       const roomDrops = roomDivs.map(div => {
         const rc = getCoords(div);
+        const vavEl = div.querySelector('[id*="vav"]');
+        const vavCoords = vavEl ? getCoords(vavEl) : null;
         return {
-          x: Math.round(rc.centerX),
+          x: vavCoords ? Math.round(vavCoords.centerX) : Math.round(rc.centerX),
           top: Math.round(rc.y)
         };
       });
@@ -569,7 +600,7 @@ function updateCanvasSchematicArrows() {
         <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3"></path>
       `;
 
-      // Vertical drop to EVERY room, stopping at top border (never overlapping room card text)
+      // Vertical drop to EVERY room, stopping at top border of room card (never overlapping room card text)
       roomDrops.forEach(drop => {
         paths += `
           <!-- Drop into room top border -->
