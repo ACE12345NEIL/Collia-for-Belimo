@@ -1,15 +1,18 @@
 /**
  * BELIMO | Collia - Frontend Application Logic
- * Stage 3: Dynamic Entity Management, CSV Filename Binding, Navigation & CRUD
+ * Dynamic Entity Management (Floors, Rooms, Equipment), CSV Filename Binding, Navigation & CRUD
  */
 
 const state = {
   topology: null,
   selectedEntity: null,
   selectedType: null, // 'building' | 'floor' | 'room' | 'equipment'
+  activeFloorId: null, // Currently selected floor for filtering/view
   currentZoom: 1.0,
   activeTab: 'layout'
 };
+
+let toastTimer = null;
 
 // -------------------------------------------------------------
 // Initialization
@@ -55,6 +58,11 @@ async function loadTopology() {
     if (!res.ok) throw new Error('Failed to load topology');
     state.topology = await res.json();
 
+    // Set default active floor if not set
+    if (!state.activeFloorId && state.topology.floors && state.topology.floors.length > 0) {
+      state.activeFloorId = state.topology.floors[0].id;
+    }
+
     // Sync facility name header
     if (state.topology.building) {
       const facilityInput = document.getElementById('facility-name-input');
@@ -96,12 +104,56 @@ async function updateFacilityName(name) {
 }
 
 // -------------------------------------------------------------
-// Sidebar Rendering
+// Sidebar Rendering (Floors, Rooms, Plant Units)
 // -------------------------------------------------------------
 function renderSidebar() {
   if (!state.topology) return;
 
-  // 1. Rooms tree
+  // 1. FLOORS LIST
+  const floorsList = document.getElementById('floors-list');
+  const floorCounterBadge = document.getElementById('floor-counter-badge');
+  const floors = state.topology.floors || [];
+
+  if (floorCounterBadge) {
+    floorCounterBadge.innerText = `${floors.length} ${floors.length === 1 ? 'Floor' : 'Floors'}`;
+  }
+
+  if (floorsList) {
+    floorsList.innerHTML = '';
+    floors.forEach(fl => {
+      const isSelected = state.selectedEntity && state.selectedEntity.id === fl.id;
+      const isActiveFloor = state.activeFloorId === fl.id;
+      const floorRooms = (state.topology.rooms || []).filter(r => r.floor_id === fl.id);
+
+      const div = document.createElement('div');
+      div.className = `flex items-center justify-between px-2.5 py-1.5 rounded border ${isSelected ? 'border-primary bg-primary/5' : isActiveFloor ? 'border-primary/60 bg-surface-canvas' : 'border-border-subtle bg-surface-canvas hover:border-border-strong'} cursor-pointer group transition-colors`;
+      div.onclick = () => {
+        state.activeFloorId = fl.id;
+        selectEntity('floor', fl.id);
+      };
+
+      div.innerHTML = `
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="material-symbols-outlined text-[17px] ${isSelected ? 'text-primary' : 'text-secondary'}">layers</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-label-sm text-label-sm ${isSelected ? 'text-primary font-semibold' : 'text-on-surface font-medium'} truncate">${fl.name}</span>
+            <span class="font-code-xs text-[10px] text-secondary">${floorRooms.length} rooms (Level ${fl.floor_number})</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded" onclick="event.stopPropagation(); selectEntity('floor', '${fl.id}')" title="Floor Details">
+            <span class="material-symbols-outlined text-[14px]">tune</span>
+          </button>
+          <button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-error transition-opacity" onclick="event.stopPropagation(); deleteEntityPrompt('floor', '${fl.id}', '${fl.name}')" title="Delete Floor">
+            <span class="material-symbols-outlined text-[14px]">remove</span>
+          </button>
+        </div>
+      `;
+      floorsList.appendChild(div);
+    });
+  }
+
+  // 2. ROOMS TREE
   const roomsTree = document.getElementById('rooms-tree');
   const roomCounterBadge = document.getElementById('room-counter-badge');
   const rooms = state.topology.rooms || [];
@@ -163,7 +215,7 @@ function renderSidebar() {
     });
   }
 
-  // 2. Shared Plant units
+  // 3. SHARED PLANT UNITS
   const sharedList = document.getElementById('shared-equipment-list');
   const sharedBadge = document.getElementById('shared-counter-badge');
   const sharedEq = state.topology.shared_equipment || [];
@@ -205,7 +257,7 @@ function renderSidebar() {
 }
 
 // -------------------------------------------------------------
-// Central Canvas Rendering
+// Central Canvas Rendering (No CFM, Fully Aligned)
 // -------------------------------------------------------------
 function renderCanvas() {
   if (!state.topology) return;
@@ -237,7 +289,7 @@ function renderCanvas() {
 
       const card = document.createElement('div');
       card.id = `node-${eq.id}`;
-      card.className = `${cardWidth} p-2.5 rounded ${isSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group`;
+      card.className = `${cardWidth} p-2.5 rounded ${isSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto`;
       card.onclick = () => selectEntity('equipment', eq.id);
 
       card.innerHTML = `
@@ -264,7 +316,7 @@ function renderCanvas() {
       const isRoomSelected = state.selectedEntity && state.selectedEntity.id === room.id;
 
       const zoneDiv = document.createElement('div');
-      zoneDiv.className = `flex-1 min-w-[280px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all`;
+      zoneDiv.className = `flex-1 min-w-[280px] rounded border ${isRoomSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border-subtle'} bg-surface-base p-3 shadow-xs transition-all pointer-events-auto`;
       zoneDiv.onclick = (e) => {
         if (e.target === zoneDiv || e.target.closest('.room-card-header')) {
           selectEntity('room', room.id);
@@ -285,7 +337,7 @@ function renderCanvas() {
             const isVav = eq.equipment_type === 'VAV';
 
             return `
-              <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
+              <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
                 ${isEqSelected ? `<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>` : ''}
                 <div class="flex items-center justify-between mb-1">
                   <span class="font-label-sm text-label-sm font-semibold ${isEqSelected ? 'text-primary font-bold' : 'text-on-surface'} truncate">${eq.equipment_type}</span>
@@ -295,7 +347,7 @@ function renderCanvas() {
                 <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
                   <div class="flex justify-between font-code-xs text-[11px]">
                     <span class="text-secondary">${isVav ? 'Airflow' : 'CO2'}:</span>
-                    <span class="font-semibold text-on-surface">${isVav ? 'Auto' : '420 ppm'}</span>
+                    <span class="font-semibold text-on-surface">${isVav ? 'Normal' : '420 ppm'}</span>
                   </div>
                   <div class="flex justify-between font-code-xs text-[11px]">
                     <span class="text-secondary">CSV:</span>
@@ -344,16 +396,13 @@ function selectEntity(type, id) {
   openDetailDrawer(type, state.selectedEntity);
 }
 
-// Support selecting by node element id (e.g. node-eq_vav_101 or node-vav-101)
 function selectCanvasElement(nodeId) {
   if (!nodeId) return;
   const cleanId = nodeId.replace(/^node-/, '');
 
-  // Look for direct equipment ID match
   const allEq = (state.topology?.room_equipment || []).concat(state.topology?.shared_equipment || []);
   let found = allEq.find(e => e.id === cleanId);
 
-  // If not found, try flexible matching (e.g. vav-101 -> eq_vav_101)
   if (!found) {
     found = allEq.find(e => e.id.includes(cleanId) || cleanId.includes(e.id.replace('eq_', '')));
   }
@@ -361,7 +410,6 @@ function selectCanvasElement(nodeId) {
   if (found) {
     selectEntity('equipment', found.id);
   } else {
-    // Check if it's a room
     const room = (state.topology?.rooms || []).find(r => r.id === cleanId || cleanId.includes(r.id.replace('rm_', '')));
     if (room) {
       selectEntity('room', room.id);
@@ -386,6 +434,7 @@ function openDetailDrawer(type, entity) {
   const descInput = document.getElementById('drawer-desc-input');
   const equipmentFields = document.getElementById('drawer-equipment-fields');
   const roomFields = document.getElementById('drawer-room-fields');
+  const floorFields = document.getElementById('drawer-floor-fields');
   const relationsContainer = document.getElementById('drawer-relationships-list');
 
   // Populate basic info
@@ -440,6 +489,17 @@ function openDetailDrawer(type, entity) {
     }
   }
 
+  // Floor specific fields
+  if (floorFields) {
+    if (type === 'floor') {
+      floorFields.classList.remove('hidden');
+      const floorNumInput = document.getElementById('drawer-floor-number-input');
+      if (floorNumInput) floorNumInput.value = entity.floor_number || 1;
+    } else {
+      floorFields.classList.add('hidden');
+    }
+  }
+
   // Populate relationships
   if (relationsContainer) {
     const rels = (state.topology?.relationships || []).filter(r => r.source_id === entity.id || r.target_id === entity.id);
@@ -458,7 +518,6 @@ function openDetailDrawer(type, entity) {
     }
   }
 
-  // Show drawer
   drawer.classList.remove('translate-x-full');
 }
 
@@ -502,6 +561,8 @@ async function saveDrawerChanges() {
     }
   } else if (type === 'floor') {
     endpoint = `/api/floors/${entity.id}`;
+    const floorNum = document.getElementById('drawer-floor-number-input');
+    if (floorNum) payload.floor_number = parseInt(floorNum.value, 10) || 1;
   } else if (type === 'building') {
     endpoint = `/api/buildings/${entity.id}`;
   }
@@ -559,13 +620,65 @@ async function deleteEntityPrompt(type, id, name) {
 }
 
 // -------------------------------------------------------------
-// Modals: Add Room, Add Device, Add Plant
+// Modals: Add Floor, Add Room, Add Device, Add Plant
 // -------------------------------------------------------------
+function openAddFloorModal() {
+  const modal = document.getElementById('modal-add-floor');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeAddFloorModal() {
+  const modal = document.getElementById('modal-add-floor');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function submitAddFloor(e) {
+  e.preventDefault();
+  const nameInput = document.getElementById('modal-floor-name');
+  const numberInput = document.getElementById('modal-floor-number');
+  const descInput = document.getElementById('modal-floor-desc');
+
+  const bldgId = state.topology && state.topology.building ? state.topology.building.id : 'bldg_01';
+
+  const payload = {
+    building_id: bldgId,
+    name: nameInput.value.trim(),
+    floor_number: parseInt(numberInput.value, 10) || 1,
+    description: descInput.value.trim()
+  };
+
+  try {
+    const res = await fetch('/api/floors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to add floor');
+    }
+
+    closeAddFloorModal();
+    nameInput.value = '';
+    numberInput.value = '';
+    descInput.value = '';
+
+    showToast(`Floor "${payload.name}" created`);
+    await loadTopology();
+  } catch (err) {
+    showToast(err.message || 'Error adding floor', true);
+  }
+}
+
 function openAddRoomModal() {
   const modal = document.getElementById('modal-add-room');
-  if (modal) {
-    modal.classList.remove('hidden');
+  const floorSelect = document.getElementById('modal-room-floor-select');
+  if (floorSelect && state.topology?.floors) {
+    floorSelect.innerHTML = state.topology.floors.map(f => `
+      <option value="${f.id}" ${f.id === state.activeFloorId ? 'selected' : ''}>${f.name} (Level ${f.floor_number})</option>
+    `).join('');
   }
+  if (modal) modal.classList.remove('hidden');
 }
 
 function closeAddRoomModal() {
@@ -575,19 +688,21 @@ function closeAddRoomModal() {
 
 async function submitAddRoom(e) {
   e.preventDefault();
+  const floorSelect = document.getElementById('modal-room-floor-select');
   const nameInput = document.getElementById('modal-room-name');
   const numberInput = document.getElementById('modal-room-number');
   const areaInput = document.getElementById('modal-room-area');
   const descInput = document.getElementById('modal-room-desc');
 
-  const floors = (state.topology && state.topology.floors) || [];
-  if (floors.length === 0) {
+  const floorId = floorSelect && floorSelect.value ? floorSelect.value : state.activeFloorId;
+
+  if (!floorId) {
     showToast('No floor found to place room into', true);
     return;
   }
 
   const payload = {
-    floor_id: floors[0].id,
+    floor_id: floorId,
     name: nameInput.value.trim(),
     room_number: numberInput.value.trim(),
     area_sqm: parseFloat(areaInput.value) || 0.0,
@@ -801,34 +916,57 @@ function simulateDataProcessing() {
     btn.classList.remove('opacity-75');
     setTimeout(() => {
       btn.innerHTML = originalText;
-    }, 2500);
+    }, 2000);
   }, 1000);
 }
 
 // -------------------------------------------------------------
-// Toast Notification
+// Toast Notification (Strictly max 2.5 - 3 seconds, instant close)
 // -------------------------------------------------------------
 function showToast(message, isError = false) {
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+
   let toast = document.getElementById('collia-toast');
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'collia-toast';
-    toast.className = 'fixed bottom-20 right-6 z-50 px-4 py-2.5 rounded shadow-lg font-body-sm text-body-sm transition-all duration-300 opacity-0 transform translate-y-2 flex items-center gap-2 pointer-events-none';
     document.body.appendChild(toast);
   }
 
+  const baseClasses = 'fixed bottom-20 right-6 z-50 px-3.5 py-2 rounded shadow-lg font-body-sm text-body-sm transition-all duration-200 transform translate-y-0 opacity-100 flex items-center gap-2 select-none';
+  const colorClasses = isError
+    ? 'bg-error text-on-error'
+    : 'bg-surface-base border border-border-strong text-on-surface shadow-md';
+
+  toast.className = `${baseClasses} ${colorClasses}`;
+
   toast.innerHTML = `
     <span class="material-symbols-outlined text-[18px]">${isError ? 'error' : 'check_circle'}</span>
-    <span>${message}</span>
+    <span class="font-medium">${message}</span>
+    <button onclick="dismissToast()" class="ml-2 text-secondary hover:text-on-surface flex items-center" title="Dismiss">
+      <span class="material-symbols-outlined text-[14px]">close</span>
+    </button>
   `;
 
-  if (isError) {
-    toast.className = 'fixed bottom-20 right-6 z-50 px-4 py-2.5 rounded shadow-lg font-body-sm text-body-sm transition-all duration-300 bg-error text-on-error flex items-center gap-2 pointer-events-none opacity-100 transform translate-y-0';
-  } else {
-    toast.className = 'fixed bottom-20 right-6 z-50 px-4 py-2.5 rounded shadow-lg font-body-sm text-body-sm transition-all duration-300 bg-surface-base border border-border-strong text-on-surface shadow-md flex items-center gap-2 pointer-events-none opacity-100 transform translate-y-0';
-  }
+  // Auto-dismiss in strictly 2.5 seconds
+  toastTimer = setTimeout(() => {
+    dismissToast();
+  }, 2500);
+}
 
-  setTimeout(() => {
+function dismissToast() {
+  const toast = document.getElementById('collia-toast');
+  if (toast) {
     toast.classList.add('opacity-0', 'translate-y-2');
-  }, 3000);
+    setTimeout(() => {
+      if (toast && toast.parentNode) toast.remove();
+    }, 200);
+  }
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
 }

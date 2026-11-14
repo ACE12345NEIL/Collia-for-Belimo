@@ -28,9 +28,24 @@ class TestStage3UIFunctionality(unittest.TestCase):
         self.assertIn('id="drawer-relationships-list"', html)
 
         # Modals
+        self.assertIn('id="modal-add-floor"', html)
         self.assertIn('id="modal-add-room"', html)
         self.assertIn('id="modal-add-room-device"', html)
         self.assertIn('id="modal-add-plant"', html)
+
+        # Floors sidebar
+        self.assertIn('id="floors-list"', html)
+        self.assertIn('id="floor-counter-badge"', html)
+
+        # Top layer SVG
+        self.assertIn('z-20', html)
+
+        # Verified CFM is removed
+        self.assertNotIn('820 CFM', html)
+        self.assertNotIn('240 CFM', html)
+
+        # Verified ready indicator is removed
+        self.assertNotIn('>Ready</div>', html)
 
         # Script
         self.assertIn('/static/js/app.js', html)
