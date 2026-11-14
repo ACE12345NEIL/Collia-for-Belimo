@@ -72,6 +72,11 @@ class TestStage3UIFunctionality(unittest.TestCase):
         self.assertIn("roomsByFloor", resp.text)
         self.assertIn("floorSection", resp.text)
         self.assertIn("submitAddPlant", resp.text)
+        # Dynamic SVG schematic arrows
+        self.assertIn("updateCanvasSchematicArrows", resp.text)
+        self.assertIn("arrow-chw", resp.text)
+        self.assertIn("arrow-air", resp.text)
+        self.assertIn("arrow-reset-signal", resp.text)
 
     def test_e2e_creation_of_all_5_equipment_types(self):
         """Tests complete UI workflow for creating a room, adding RAQS & VAV, and creating shared AHU, EV, and Chiller."""

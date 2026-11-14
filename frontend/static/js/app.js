@@ -47,6 +47,11 @@ function initEventListeners() {
   if (btnAddEq) {
     btnAddEq.addEventListener('click', () => openAddPlantModal());
   }
+
+  // Redraw SVG schematic arrows on resize
+  window.addEventListener('resize', () => {
+    updateCanvasSchematicArrows();
+  });
 }
 
 // -------------------------------------------------------------
@@ -436,6 +441,202 @@ function renderCanvas() {
       zonesContainer.appendChild(floorSection);
     });
   }
+
+  // Draw clean, top-layer dynamic schematic interconnect arrows
+  requestAnimationFrame(() => {
+    updateCanvasSchematicArrows();
+  });
+}
+
+// -------------------------------------------------------------
+// Dynamic Top-Layer SVG Schematic Interconnect Arrows
+// Connects Chiller -> EV -> AHU, AHU -> VAVs, RAQS -> VAV
+// -------------------------------------------------------------
+function updateCanvasSchematicArrows() {
+  const svg = document.getElementById('canvas-schematic-svg');
+  const workspace = document.getElementById('canvas-workspace');
+  if (!svg || !workspace || !state.topology) return;
+
+  const wRect = workspace.getBoundingClientRect();
+  const scale = state.currentZoom || 1.0;
+
+  function getCoords(el) {
+    if (!el) return null;
+    const eRect = el.getBoundingClientRect();
+    return {
+      x: (eRect.left - wRect.left) / scale,
+      y: (eRect.top - wRect.top) / scale,
+      width: eRect.width / scale,
+      height: eRect.height / scale,
+      right: (eRect.right - wRect.left) / scale,
+      bottom: (eRect.bottom - wRect.top) / scale,
+      centerX: ((eRect.left + eRect.right) / 2 - wRect.left) / scale,
+      centerY: ((eRect.top + eRect.bottom) / 2 - wRect.top) / scale,
+    };
+  }
+
+  const defs = `
+    <defs>
+      <marker id="arrow-chw" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+        <path d="M0,0 L6,3 L0,6 Z" fill="#0284C7"></path>
+      </marker>
+      <marker id="arrow-return" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+        <path d="M0,0 L6,3 L0,6 Z" fill="#64748B"></path>
+      </marker>
+      <marker id="arrow-air" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+        <path d="M0,0 L6,3 L0,6 Z" fill="#ff7a1a"></path>
+      </marker>
+      <marker id="arrow-reset-signal" markerHeight="5" markerWidth="5" orient="auto" refX="4" refY="2.5">
+        <path d="M0,0 L5,2.5 L0,5 Z" fill="#ff7a1a"></path>
+      </marker>
+    </defs>
+  `;
+
+  let paths = '';
+
+  // 1. Central Hydronic Plant Interconnects (Chiller -> EV -> AHU)
+  const chillerEl = document.getElementById('node-eq_chiller_01') || document.querySelector('[id*="chiller"]');
+  const evEl = document.getElementById('node-eq_ev_01') || document.querySelector('[id*="ev"]');
+  const ahuEl = document.getElementById('node-eq_ahu_01') || document.querySelector('[id*="ahu"]');
+
+  const c = getCoords(chillerEl);
+  const ev = getCoords(evEl);
+  const ahu = getCoords(ahuEl);
+
+  if (c && ev) {
+    const midX = Math.round((c.right + ev.x) / 2);
+    const y = Math.round(c.centerY);
+    paths += `
+      <!-- Chiller to EV -->
+      <path d="M ${Math.round(c.right)} ${y} L ${Math.round(ev.x)} ${y}" fill="none" stroke="#0284C7" stroke-width="3" marker-end="url(#arrow-chw)"></path>
+      <rect x="${midX - 26}" y="${y - 18}" width="52" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8"></rect>
+      <text x="${midX}" y="${y - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-[#0284C7] font-bold">6.1°C</text>
+    `;
+  }
+
+  if (ev && ahu) {
+    const midX = Math.round((ev.right + ahu.x) / 2);
+    const y = Math.round(ev.centerY);
+    paths += `
+      <!-- EV to AHU -->
+      <path d="M ${Math.round(ev.right)} ${y} L ${Math.round(ahu.x)} ${y}" fill="none" stroke="#0284C7" stroke-width="3" marker-end="url(#arrow-chw)"></path>
+      <rect x="${midX - 26}" y="${y - 18}" width="52" height="15" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8"></rect>
+      <text x="${midX}" y="${y - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-[#0284C7] font-bold">Coil In</text>
+    `;
+  }
+
+  if (c && ahu) {
+    const returnY = Math.round(Math.max(c.bottom, ahu.bottom) + 14);
+    const midX = Math.round((c.centerX + ahu.centerX) / 2);
+    paths += `
+      <!-- Hydronic Return -->
+      <path d="M ${Math.round(ahu.centerX)} ${Math.round(ahu.bottom)} L ${Math.round(ahu.centerX)} ${returnY} L ${Math.round(c.centerX)} ${returnY} L ${Math.round(c.centerX)} ${Math.round(c.bottom + 4)}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" marker-end="url(#arrow-return)"></path>
+      <rect x="${midX - 70}" y="${returnY - 9}" width="140" height="18" rx="4" fill="#FFFFFF" stroke="#64748B" stroke-width="1"></rect>
+      <text x="${midX}" y="${returnY + 4}" text-anchor="middle" class="font-code-xs text-[10px] fill-secondary font-medium">◀ Hydronic Return 12.8°C ◀</text>
+    `;
+  }
+
+  // 2. Supply Air Duct from AHU-01 to Floor Rooms / VAV Actuators
+  if (ahu) {
+    const vavNodes = [];
+    (state.topology.rooms || []).forEach(room => {
+      const roomEq = (state.topology.room_equipment || []).filter(e => e.room_id === room.id);
+      const vav = roomEq.find(e => e.equipment_type === 'VAV');
+      if (vav) {
+        const vEl = document.getElementById('node-' + vav.id);
+        const vCoords = getCoords(vEl);
+        if (vCoords) {
+          vavNodes.push({ room, vav, coords: vCoords });
+        }
+      }
+    });
+
+    if (vavNodes.length > 0) {
+      const riserX = Math.round(ahu.right + 25);
+      const trunkY = Math.round(ahu.centerY);
+
+      // Main AHU exit line
+      paths += `
+        <!-- Supply Air Trunk exit -->
+        <path d="M ${Math.round(ahu.right)} ${trunkY} L ${riserX} ${trunkY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"></path>
+        <rect x="${riserX - 10}" y="${trunkY - 18}" width="95" height="15" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8"></rect>
+        <text x="${riserX + 38}" y="${trunkY - 7}" text-anchor="middle" class="font-code-xs text-[9px] fill-primary font-bold">Supply Air Trunk</text>
+      `;
+
+      // Group VAVs by floor
+      const vavsByFloor = {};
+      vavNodes.forEach(item => {
+        const flId = item.room.floor_id;
+        if (!vavsByFloor[flId]) vavsByFloor[flId] = [];
+        vavsByFloor[flId].push(item);
+      });
+
+      let maxRiserY = trunkY;
+
+      Object.keys(vavsByFloor).forEach(flId => {
+        const items = vavsByFloor[flId];
+        const minVavX = Math.min(...items.map(i => i.coords.x));
+        const floorEl = document.getElementById('floor-container-' + flId) || items[0].coords;
+        const flCoords = getCoords(floorEl) || items[0].coords;
+
+        // Position distribution channel right above the room cards
+        const floorDistY = Math.round(flCoords.y + 44);
+        if (floorDistY > maxRiserY) maxRiserY = floorDistY;
+
+        // Horizontal branch duct from riser across to first VAV room
+        paths += `
+          <!-- Floor ${flId} Supply Duct Branch -->
+          <path d="M ${riserX} ${floorDistY} L ${Math.round(minVavX - 8)} ${floorDistY}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-linecap="round"></path>
+        `;
+
+        // Supply drop into each VAV on this floor
+        items.forEach(item => {
+          const dropX = Math.round(item.coords.x - 8);
+          const vavY = Math.round(item.coords.centerY);
+          paths += `
+            <!-- Duct drop into ${item.vav.name} -->
+            <path d="M ${dropX} ${floorDistY} L ${dropX} ${vavY} L ${Math.round(item.coords.x)} ${vavY}" fill="none" stroke="#ff7a1a" stroke-width="2" marker-end="url(#arrow-air)"></path>
+          `;
+        });
+      });
+
+      // Main vertical riser from AHU to the lowest floor branch
+      paths += `
+        <!-- Main vertical supply duct riser -->
+        <path d="M ${riserX} ${trunkY} L ${riserX} ${maxRiserY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"></path>
+      `;
+    }
+  }
+
+  // 3. Zone Control Signals (RAQS Sensor controls VAV Actuator)
+  (state.topology.rooms || []).forEach(room => {
+    const roomEq = (state.topology.room_equipment || []).filter(e => e.room_id === room.id);
+    const vav = roomEq.find(e => e.equipment_type === 'VAV');
+    const raqs = roomEq.find(e => e.equipment_type === 'RAQS');
+
+    if (vav && raqs) {
+      const vEl = document.getElementById('node-' + vav.id);
+      const rEl = document.getElementById('node-' + raqs.id);
+      const vc = getCoords(vEl);
+      const rc = getCoords(rEl);
+
+      if (vc && rc) {
+        const rx = Math.round(rc.x);
+        const vx = Math.round(vc.right);
+        const y = Math.round(rc.centerY);
+
+        if (rx > vx) {
+          // Clean directional arrow from RAQS into VAV across card gap
+          paths += `
+            <!-- Telemetry Control Loop RAQS -> VAV in ${room.name} -->
+            <path d="M ${rx} ${y} L ${vx} ${y}" fill="none" stroke="#ff7a1a" stroke-dasharray="3,2" stroke-width="1.8" marker-end="url(#arrow-reset-signal)"></path>
+          `;
+        }
+      }
+    }
+  });
+
+  svg.innerHTML = defs + paths;
 }
 
 // -------------------------------------------------------------
@@ -919,6 +1120,7 @@ function zoomCanvas(delta) {
   if (!workspace) return;
   state.currentZoom = Math.min(Math.max(state.currentZoom + delta, 0.6), 1.6);
   workspace.style.transform = `scale(${state.currentZoom})`;
+  updateCanvasSchematicArrows();
 }
 
 function resetZoom() {
@@ -926,6 +1128,7 @@ function resetZoom() {
   if (!workspace) return;
   state.currentZoom = 1.0;
   workspace.style.transform = 'scale(1.0)';
+  updateCanvasSchematicArrows();
 }
 
 function fitCanvas() {
@@ -933,6 +1136,7 @@ function fitCanvas() {
   if (!workspace) return;
   state.currentZoom = 0.9;
   workspace.style.transform = 'scale(0.9)';
+  updateCanvasSchematicArrows();
 }
 
 function switchCanvasView(viewType) {
