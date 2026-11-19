@@ -57,6 +57,9 @@ function initEventListeners() {
     btnAddEq.addEventListener('click', () => openAddPlantModal());
   }
 
+  // Restore sidebar collapse states
+  initCollapsibleSidebars();
+
   // Redraw SVG schematic arrows on resize
   window.addEventListener('resize', () => {
     updateCanvasSchematicArrows();
@@ -410,6 +413,23 @@ function initDraggableBoxes() {
     }
   });
 
+  // ── Right-click on a knee handle → directly remove it ────────────────────
+  workspace.addEventListener('contextmenu', e => {
+    const kneeEl = e.target.closest('[data-handle="knee"]');
+    if (kneeEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      const arrowId = kneeEl.getAttribute('data-arrow-id');
+      const idx = parseInt(kneeEl.getAttribute('data-knee-index') || '0');
+      if (arrowId && state.arrowOffsets && state.arrowOffsets[arrowId] && state.arrowOffsets[arrowId].knees) {
+        state.arrowOffsets[arrowId].knees.splice(idx, 1);
+        try { localStorage.setItem('collia_arrow_offsets', JSON.stringify(state.arrowOffsets)); } catch(err){}
+        updateCanvasSchematicArrows();
+        showToast('Bend point deleted', 'info');
+      }
+    }
+  });
+
   // ── Double-click on an arrow path → add a bend (knee) point ───────────────
   // Double-click on an existing knee handle → remove it
   workspace.addEventListener('dblclick', e => {
@@ -427,7 +447,7 @@ function initDraggableBoxes() {
       // Remove this knee point
       const idx = parseInt(arrowEl.getAttribute('data-knee-index') || '0');
       state.arrowOffsets[arrowId].knees.splice(idx, 1);
-      showToast('Bend point removed', 'info');
+      showToast('Bend point deleted', 'info');
     } else if (handleType === 'mid' || handleType === 'start' || handleType === 'end') {
       // Add a new knee at the click position in canvas-space
       const svg = document.getElementById('canvas-schematic-svg');
@@ -437,7 +457,7 @@ function initDraggableBoxes() {
       const kx = Math.round((e.clientX - svgRect.left) / scale);
       const ky = Math.round((e.clientY - svgRect.top) / scale);
       state.arrowOffsets[arrowId].knees.push({ x: kx, y: ky });
-      showToast('Bend point added — drag the ◆ to route the arrow', 'info');
+      showToast('Bend point added — drag the ◆ to route the arrow (right-click to delete)', 'info');
     }
 
     try { localStorage.setItem('collia_arrow_offsets', JSON.stringify(state.arrowOffsets)); } catch(err){}
@@ -1050,8 +1070,8 @@ function buildArrowPath(sx, sy, ex, ey, knees, midX, midY) {
 function renderKneeHandles(arrowId, knees, color) {
   if (!knees || knees.length === 0) return '';
   return knees.map((k, i) => `
-    <circle cx="${k.x}" cy="${k.y}" r="20" fill="transparent" class="pointer-events-auto cursor-grab" data-arrow-id="${arrowId}" data-handle="knee" data-knee-index="${i}" title="Drag to bend ◆ | Double-click to remove"></circle>
-    <rect x="${k.x - 8}" y="${k.y - 8}" width="16" height="16" rx="2" transform="rotate(45 ${k.x} ${k.y})" fill="${color}" stroke="#FFFFFF" stroke-width="2" class="pointer-events-auto cursor-grab hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="knee" data-knee-index="${i}" title="Drag to bend ◆ | Double-click to remove"></rect>
+    <circle cx="${k.x}" cy="${k.y}" r="22" fill="transparent" class="pointer-events-auto cursor-grab" data-arrow-id="${arrowId}" data-handle="knee" data-knee-index="${i}" title="Drag bend point ◆ | Right-click or double-click to delete"></circle>
+    <rect x="${k.x - 7}" y="${k.y - 7}" width="14" height="14" rx="2" transform="rotate(45 ${k.x} ${k.y})" fill="${color}" stroke="#FFFFFF" stroke-width="2" class="pointer-events-auto cursor-grab hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="knee" data-knee-index="${i}" title="Drag bend point ◆ | Right-click or double-click to delete"></rect>
   `).join('');
 }
 
@@ -1303,17 +1323,24 @@ function updateCanvasSchematicArrows() {
 
     // Build path: knees override the default L-shaped corridor route
     const kneesR = off.knees || [];
-    const d = kneesR.length > 0
-      ? buildArrowPath(ahuExitX, ahuExitY, chillerEntX, chillerEntY, kneesR)
-      : `M ${ahuExitX} ${ahuExitY} L ${corridorX} ${ahuExitY} L ${corridorX} ${returnY} L ${chillerEntX} ${returnY} L ${chillerEntX} ${chillerEntY}`;
-    const labelX = Math.round((corridorX + chillerEntX) / 2);
-    const labelY = returnY;
-    const returnLabel = returnPairs.length > 1 ? `${pair.ahu.name} Return` : `Hydronic Return`;
+    let d;
+    if (kneesR.length > 0) {
+      d = buildArrowPath(ahuExitX, ahuExitY, chillerEntX, chillerEntY, kneesR);
+    } else {
+      // Allow moving the whole return line via (off.x, off.y)
+      // off.x adjusts the left corridor, off.y adjusts the horizontal bottom return channel
+      d = `M ${ahuExitX} ${ahuExitY} L ${corridorX} ${ahuExitY} L ${corridorX} ${returnY} L ${chillerEntX} ${returnY} L ${chillerEntX} ${chillerEntY}`;
+    }
+
+    // Mid handle placed on the horizontal return channel
+    const midHandleX = Math.round((corridorX + chillerEntX) / 2);
+    const midHandleY = returnY;
 
     paths += `
       <!-- Hydronic Return ${pair.ahu.name} → ${pair.chiller.name} (grey dashed 60%) -->
       <g class="arrow-group" data-arrow-id="${arrowId}">
-        <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;"></path>
+        <!-- Wide invisible stroke for easy grabbing and moving of entire return line -->
+        <path d="${d}" fill="none" stroke="transparent" stroke-width="22" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/20 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;" title="Drag grey return line | Dbl-click to add bend"></path>
         <path d="${d}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-return)" pointer-events="none"></path>
         <!-- Start Pin (AHU return outlet) -->
         <circle cx="${ahuExitX}" cy="${ahuExitY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (AHU return outlet)"></circle>
@@ -1321,8 +1348,9 @@ function updateCanvasSchematicArrows() {
         <!-- End Pin (Chiller return inlet) -->
         <circle cx="${chillerEntX}" cy="${chillerEntY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (Chiller return inlet)"></circle>
         <circle cx="${chillerEntX}" cy="${chillerEntY}" r="9" fill="#64748B" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (Chiller return inlet)"></circle>
-        <!-- Channel bend handle (no label) -->
-        <circle cx="${corridorX}" cy="${returnY}" r="5" fill="#FFFFFF" stroke="#64748B" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="mid" title="Drag return line corridor | Dbl-click to add bend"></circle>
+        <!-- Channel mid-drag handle on return pipe -->
+        <circle cx="${midHandleX}" cy="${midHandleY}" r="18" fill="transparent" class="pointer-events-auto cursor-grab" data-arrow-id="${arrowId}" data-handle="mid" title="Drag return line | Dbl-click to add bend"></circle>
+        <circle cx="${midHandleX}" cy="${midHandleY}" r="6" fill="#64748B" stroke="#FFFFFF" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="mid" title="Drag return line | Dbl-click to add bend"></circle>
         ${renderKneeHandles(arrowId, kneesR, '#64748B')}
       </g>
     `;
@@ -3445,6 +3473,133 @@ function toggleRoom(roomId) {
     caret.classList.remove('rotate-90');
     state.expandedRooms.delete(roomId);
   }
+}
+
+// -------------------------------------------------------------
+// Collapsible Sidebars (Main Navigation and System Components)
+// -------------------------------------------------------------
+function initCollapsibleSidebars() {
+  try {
+    const mainNavCollapsed = localStorage.getItem('collia_main_nav_collapsed') === 'true';
+    if (mainNavCollapsed) {
+      applyMainNavCollapsed(true, false);
+    }
+    const systemComponentsCollapsed = localStorage.getItem('collia_system_components_collapsed') === 'true';
+    if (systemComponentsCollapsed) {
+      applySystemComponentsCollapsed(true, false);
+    }
+  } catch (err) {
+    console.warn('Error reading sidebar collapse states:', err);
+  }
+}
+
+function toggleMainNavSidebar() {
+  const sidebar = document.getElementById('main-nav-sidebar');
+  if (!sidebar) return;
+  const isCollapsed = sidebar.classList.contains('w-16');
+  applyMainNavCollapsed(!isCollapsed, true);
+}
+
+function applyMainNavCollapsed(collapsed, save) {
+  const sidebar = document.getElementById('main-nav-sidebar');
+  const mainContent = document.getElementById('main-content-layout');
+  const header = document.getElementById('main-header');
+  const icon = document.getElementById('btn-toggle-main-nav-icon');
+  const brand = document.getElementById('main-nav-brand');
+  const navTexts = document.querySelectorAll('#main-nav-sidebar .nav-text');
+
+  if (!sidebar) return;
+
+  if (collapsed) {
+    sidebar.classList.remove('w-64');
+    sidebar.classList.add('w-16');
+    if (mainContent) {
+      mainContent.classList.remove('pl-64');
+      mainContent.classList.add('pl-16');
+    }
+    if (header) {
+      header.classList.remove('left-64');
+      header.classList.add('left-16');
+    }
+    if (icon) icon.innerText = 'chevron_right';
+    if (brand) brand.classList.add('hidden');
+    navTexts.forEach(el => el.classList.add('hidden'));
+  } else {
+    sidebar.classList.remove('w-16');
+    sidebar.classList.add('w-64');
+    if (mainContent) {
+      mainContent.classList.remove('pl-16');
+      mainContent.classList.add('pl-64');
+    }
+    if (header) {
+      header.classList.remove('left-16');
+      header.classList.add('left-64');
+    }
+    if (icon) icon.innerText = 'chevron_left';
+    if (brand) brand.classList.remove('hidden');
+    navTexts.forEach(el => el.classList.remove('hidden'));
+  }
+
+  if (save) {
+    try {
+      localStorage.setItem('collia_main_nav_collapsed', collapsed ? 'true' : 'false');
+    } catch (e) {}
+  }
+
+  setTimeout(() => {
+    updateCanvasSchematicArrows();
+  }, 320);
+}
+
+function toggleSystemComponentsSidebar() {
+  const sidebar = document.getElementById('system-components-sidebar');
+  if (!sidebar) return;
+  const isCollapsed = sidebar.classList.contains('w-0') || sidebar.style.width === '0px';
+  applySystemComponentsCollapsed(!isCollapsed, true);
+}
+
+function applySystemComponentsCollapsed(collapsed, save) {
+  const sidebar = document.getElementById('system-components-sidebar');
+  const icon = document.getElementById('btn-toggle-system-icon');
+  const toggleBtn = document.getElementById('btn-toggle-system-components');
+  const content = document.getElementById('sidebar-scrollable-container');
+  const footerLabel = document.getElementById('sidebar-footer-label');
+
+  if (!sidebar) return;
+
+  if (collapsed) {
+    sidebar.classList.remove('w-[310px]');
+    sidebar.classList.add('w-0', 'border-r-0', 'overflow-hidden');
+    if (content) content.classList.add('hidden');
+    if (footerLabel) footerLabel.classList.add('hidden');
+    if (icon) icon.innerText = 'chevron_right';
+    if (toggleBtn) {
+      toggleBtn.classList.remove('left-[298px]');
+      toggleBtn.classList.add('left-2');
+      toggleBtn.title = 'Expand System Components Panel';
+    }
+  } else {
+    sidebar.classList.remove('w-0', 'border-r-0', 'overflow-hidden');
+    sidebar.classList.add('w-[310px]');
+    if (content) content.classList.remove('hidden');
+    if (footerLabel) footerLabel.classList.remove('hidden');
+    if (icon) icon.innerText = 'chevron_left';
+    if (toggleBtn) {
+      toggleBtn.classList.remove('left-2');
+      toggleBtn.classList.add('left-[298px]');
+      toggleBtn.title = 'Collapse System Components Panel';
+    }
+  }
+
+  if (save) {
+    try {
+      localStorage.setItem('collia_system_components_collapsed', collapsed ? 'true' : 'false');
+    } catch (e) {}
+  }
+
+  setTimeout(() => {
+    updateCanvasSchematicArrows();
+  }, 320);
 }
 
 // -------------------------------------------------------------
