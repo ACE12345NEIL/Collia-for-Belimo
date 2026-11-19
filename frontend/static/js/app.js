@@ -214,6 +214,8 @@ function initDraggableBoxes() {
   let dragMode = null; // 'box' | 'arrow' | null
   let activeTarget = null;
   let activeKey = '';
+  let activeHandle = 'mid'; // 'start' | 'end' | 'mid' | 'knee'
+  let activeKneeIndex = -1;
   let startMouseX = 0, startMouseY = 0;
   let initialOffsetX = 0, initialOffsetY = 0;
   let isDragging = false;
@@ -228,23 +230,41 @@ function initDraggableBoxes() {
       return;
     }
 
-    // 1. Check if clicking on a movable Arrow (path, handle, or label badge)
+    // 1. Check if clicking on a movable Arrow (start handle, end handle, line, or label badge)
     const arrowEl = e.target.closest('[data-arrow-id]');
     if (arrowEl) {
       const arrowId = arrowEl.getAttribute('data-arrow-id');
+      const handleType = arrowEl.getAttribute('data-handle') || 'mid';
       if (arrowId) {
         dragMode = 'arrow';
         activeTarget = arrowEl;
         activeKey = arrowId;
+        activeHandle = handleType;
         startMouseX = e.clientX;
         startMouseY = e.clientY;
         isDragging = false;
 
-        const savedOff = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
-        initialOffsetX = savedOff.x;
-        initialOffsetY = savedOff.y;
+        const savedOff = (state.arrowOffsets && state.arrowOffsets[arrowId]) || {};
+        if (handleType === 'start') {
+          initialOffsetX = savedOff.startX || 0;
+          initialOffsetY = savedOff.startY || 0;
+          viewport.style.cursor = 'crosshair';
+        } else if (handleType === 'end') {
+          initialOffsetX = savedOff.endX || 0;
+          initialOffsetY = savedOff.endY || 0;
+          viewport.style.cursor = 'crosshair';
+        } else if (handleType === 'knee') {
+          activeKneeIndex = parseInt(arrowEl.getAttribute('data-knee-index') || '0');
+          const knees = savedOff.knees || [];
+          initialOffsetX = knees[activeKneeIndex]?.x || 0;
+          initialOffsetY = knees[activeKneeIndex]?.y || 0;
+          viewport.style.cursor = 'grabbing';
+        } else {
+          initialOffsetX = savedOff.x || 0;
+          initialOffsetY = savedOff.y || 0;
+          viewport.style.cursor = 'grabbing';
+        }
 
-        viewport.style.cursor = 'grabbing';
         e.stopPropagation();
         e.preventDefault();
         return;
@@ -300,9 +320,9 @@ function initDraggableBoxes() {
     if (!isDragging && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
       isDragging = true;
       document.body.style.userSelect = 'none';
-      viewport.style.cursor = 'grabbing';
+      viewport.style.cursor = activeHandle === 'start' || activeHandle === 'end' ? 'crosshair' : 'grabbing';
       if (activeTarget && activeTarget.style) {
-        activeTarget.style.cursor = 'grabbing';
+        activeTarget.style.cursor = activeHandle === 'start' || activeHandle === 'end' ? 'crosshair' : 'grabbing';
       }
     }
 
@@ -317,7 +337,21 @@ function initDraggableBoxes() {
         state.boxPositions[activeKey] = { x: newX, y: newY };
       } else if (dragMode === 'arrow') {
         if (!state.arrowOffsets) state.arrowOffsets = {};
-        state.arrowOffsets[activeKey] = { x: newX, y: newY };
+        if (!state.arrowOffsets[activeKey]) state.arrowOffsets[activeKey] = {};
+
+        if (activeHandle === 'start') {
+          state.arrowOffsets[activeKey].startX = newX;
+          state.arrowOffsets[activeKey].startY = newY;
+        } else if (activeHandle === 'end') {
+          state.arrowOffsets[activeKey].endX = newX;
+          state.arrowOffsets[activeKey].endY = newY;
+        } else if (activeHandle === 'knee') {
+          if (!state.arrowOffsets[activeKey].knees) state.arrowOffsets[activeKey].knees = [];
+          state.arrowOffsets[activeKey].knees[activeKneeIndex] = { x: newX, y: newY };
+        } else {
+          state.arrowOffsets[activeKey].x = newX;
+          state.arrowOffsets[activeKey].y = newY;
+        }
       }
 
       // Update connecting SVG arrows in real-time
@@ -374,6 +408,42 @@ function initDraggableBoxes() {
         }
       }
     }
+  });
+
+  // ── Double-click on an arrow path → add a bend (knee) point ───────────────
+  // Double-click on an existing knee handle → remove it
+  workspace.addEventListener('dblclick', e => {
+    const arrowEl = e.target.closest('[data-arrow-id]');
+    if (!arrowEl) return;
+    const arrowId = arrowEl.getAttribute('data-arrow-id');
+    const handleType = arrowEl.getAttribute('data-handle') || 'mid';
+    if (!arrowId) return;
+
+    if (!state.arrowOffsets) state.arrowOffsets = {};
+    if (!state.arrowOffsets[arrowId]) state.arrowOffsets[arrowId] = {};
+    if (!state.arrowOffsets[arrowId].knees) state.arrowOffsets[arrowId].knees = [];
+
+    if (handleType === 'knee') {
+      // Remove this knee point
+      const idx = parseInt(arrowEl.getAttribute('data-knee-index') || '0');
+      state.arrowOffsets[arrowId].knees.splice(idx, 1);
+      showToast('Bend point removed', 'info');
+    } else if (handleType === 'mid' || handleType === 'start' || handleType === 'end') {
+      // Add a new knee at the click position in canvas-space
+      const svg = document.getElementById('canvas-schematic-svg');
+      if (!svg) return;
+      const svgRect = svg.getBoundingClientRect();
+      const scale = state.currentZoom || 1.0;
+      const kx = Math.round((e.clientX - svgRect.left) / scale);
+      const ky = Math.round((e.clientY - svgRect.top) / scale);
+      state.arrowOffsets[arrowId].knees.push({ x: kx, y: ky });
+      showToast('Bend point added — drag the ◆ to route the arrow', 'info');
+    }
+
+    try { localStorage.setItem('collia_arrow_offsets', JSON.stringify(state.arrowOffsets)); } catch(err){}
+    updateCanvasSchematicArrows();
+    e.stopPropagation();
+    e.preventDefault();
   });
 }
 
@@ -518,13 +588,10 @@ async function updateFacilityName(name) {
 function renderSidebar() {
   if (!state.topology) return;
 
-  // ── Persist room collapse state before rebuilding DOM ──────────────────
-  const collapsedRooms = new Set();
-  document.querySelectorAll('[id^="content-"]').forEach(el => {
-    if (el.classList.contains('hidden')) {
-      collapsedRooms.add(el.id.replace('content-', ''));
-    }
-  });
+  // ── Track expanded rooms (initially all rooms are collapsed for neatness) ──
+  if (!state.expandedRooms) {
+    state.expandedRooms = new Set();
+  }
 
   // 1. FLOORS LIST
   const floorsList = document.getElementById('floors-list');
@@ -600,6 +667,7 @@ function renderSidebar() {
       floorRooms.forEach(room => {
         const roomEq = (state.topology.room_equipment || []).filter(eq => eq.room_id === room.id);
         const isSelected = state.selectedEntity && state.selectedEntity.id === room.id;
+        const isExpanded = Boolean(state.expandedRooms && state.expandedRooms.has(room.id));
 
         const roomDiv = document.createElement('div');
         roomDiv.className = `rounded border ${isSelected ? 'border-primary' : 'border-border-subtle'} bg-surface-base overflow-hidden`;
@@ -608,7 +676,7 @@ function renderSidebar() {
         roomDiv.innerHTML = `
           <div class="flex items-center justify-between px-space-sm py-1.5 bg-surface-subtle/80 cursor-pointer room-header group" onclick="toggleRoom('${room.id}')">
             <div class="flex items-center gap-1 min-w-0" onclick="event.stopPropagation(); selectEntity('room', '${room.id}')">
-              <span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform rotate-90" id="caret-${room.id}">chevron_right</span>
+              <span class="material-symbols-outlined text-[16px] text-secondary transition-transform duration-150 transform ${isExpanded ? 'rotate-90' : ''}" id="caret-${room.id}">chevron_right</span>
               <span class="font-label-sm text-label-sm text-on-surface font-medium truncate">${room.name}</span>
             </div>
             <div class="flex items-center gap-1">
@@ -620,7 +688,7 @@ function renderSidebar() {
               </button>
             </div>
           </div>
-          <div class="p-space-xs flex flex-col gap-1 bg-surface-base" id="content-${room.id}">
+          <div class="p-space-xs flex flex-col gap-1 bg-surface-base ${isExpanded ? '' : 'hidden'}" id="content-${room.id}">
             ${roomEq.map(eq => {
               const isEqSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
               const isVav = eq.equipment_type === 'VAV';
@@ -650,14 +718,6 @@ function renderSidebar() {
         `;
         roomsTree.appendChild(roomDiv);
       });
-    });
-
-    // ── Restore room collapse state after DOM rebuild ──────────────────────
-    collapsedRooms.forEach(roomId => {
-      const content = document.getElementById('content-' + roomId);
-      const caret = document.getElementById('caret-' + roomId);
-      if (content) content.classList.add('hidden');
-      if (caret) caret.classList.remove('rotate-90');
     });
   }
 
@@ -733,21 +793,28 @@ function renderCanvas() {
 
     sortedSharedEq.forEach(eq => {
       const isSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
+      const csvInfo = state.csvStatuses ? state.csvStatuses[eq.id] : null;
+      const hasData = csvInfo && csvInfo.status === 'HAS_DATA' && csvInfo.row_count > 0;
+
       let icon = 'mode_fan';
       let sublabel = 'Air Handling Unit';
       let cardWidth = 'min-w-[130px] w-auto';
-      let statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-on-surface"><span class="">Supply Fan</span><span class="text-status-success font-medium">Auto</span></div>`;
+      let statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">Supply Fan</span><span class="${hasData ? 'text-status-success font-medium' : 'font-medium'}">${hasData ? 'Auto' : '--'}</span></div>`;
 
       if (eq.equipment_type === 'CHILLER') {
         icon = 'ac_unit';
         sublabel = 'Central Chiller';
         cardWidth = 'min-w-[120px] w-auto';
-        statHtml = `<div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div>`;
+        statHtml = hasData 
+          ? `<div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1 border-t border-border-subtle pt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div>`
+          : `<div class="font-code-xs text-[10px] text-secondary flex items-center gap-1 mt-1 border-t border-border-subtle pt-1"><span class="w-1.5 h-1.5 rounded-full bg-border-strong"></span><span>--</span></div>`;
       } else if (eq.equipment_type === 'EV') {
         icon = 'speed';
         sublabel = 'Energy Valve';
         cardWidth = 'min-w-[130px] w-auto';
-        statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div>`;
+        statHtml = hasData
+          ? `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div>`
+          : `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT:</span><span class="">--</span><span class="">Flow:</span><span class="">--</span></div>`;
       }
 
       const card = document.createElement('div');
@@ -885,6 +952,10 @@ function renderCanvas() {
             const icon = isVav ? 'hvac' : 'air';
             const typeBadge = isVav ? 'VAV' : (eq.equipment_type === 'RAQS' ? 'RAQS' : eq.equipment_type);
 
+            const eqCsvInfo = state.csvStatuses ? state.csvStatuses[eq.id] : null;
+            const eqHasData = eqCsvInfo && eqCsvInfo.status === 'HAS_DATA' && eqCsvInfo.row_count > 0;
+            const statVal = eqHasData ? (isVav ? 'Normal' : 'Active') : '--';
+
             devicesHtml += `
               <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto min-w-[125px]" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
                 ${isEqSelected ? '<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>' : ''}
@@ -904,7 +975,7 @@ function renderCanvas() {
                 <div class="mt-2 pt-1.5 border-t border-border-subtle flex flex-col gap-0.5">
                   <div class="flex justify-between font-code-xs text-[11px]">
                     <span class="text-secondary">${isVav ? 'Airflow:' : 'Status:'}</span>
-                    <span class="font-semibold text-on-surface">${isVav ? 'Normal' : 'Active'}</span>
+                    <span class="${eqHasData ? 'font-semibold text-on-surface' : 'font-medium text-secondary'}">${statVal}</span>
                   </div>
                   <div class="flex justify-between items-center font-code-xs text-[11px]">
                     <span class="text-secondary">CSV:</span>
@@ -950,6 +1021,40 @@ function renderCanvas() {
 // Arrows flow DOWNWARD within plant box, never crossing horizontally between tiers.
 // Return lines go left-of-plant below the box. Air ducts exit right from AHU tier.
 // -------------------------------------------------------------
+
+// Build an SVG path that routes from (sx,sy) → knees[] → (ex,ey).
+// Between each segment we use an orthogonal L-route (horizontal then vertical).
+// If no knees, falls back to the original direct / mid-step path.
+function buildArrowPath(sx, sy, ex, ey, knees, midX, midY) {
+  if (!knees || knees.length === 0) {
+    // Original straight / elbow route
+    if (midX !== undefined && midY !== undefined) {
+      if (Math.abs(sx - ex) < 4) return `M ${sx} ${sy} L ${sx} ${ey}`;
+      return `M ${sx} ${sy} L ${sx} ${midY} L ${ex} ${midY} L ${ex} ${ey}`;
+    }
+    return `M ${sx} ${sy} L ${ex} ${ey}`;
+  }
+  // With knees: chain through each waypoint with right-angle bends
+  const pts = [{ x: sx, y: sy }, ...knees, { x: ex, y: ey }];
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const cur  = pts[i];
+    // Route via horizontal-then-vertical elbow
+    d += ` L ${cur.x} ${prev.y} L ${cur.x} ${cur.y}`;
+  }
+  return d;
+}
+
+// Render draggable knee-point diamond handles for a given arrow
+function renderKneeHandles(arrowId, knees, color) {
+  if (!knees || knees.length === 0) return '';
+  return knees.map((k, i) => `
+    <circle cx="${k.x}" cy="${k.y}" r="20" fill="transparent" class="pointer-events-auto cursor-grab" data-arrow-id="${arrowId}" data-handle="knee" data-knee-index="${i}" title="Drag to bend ◆ | Double-click to remove"></circle>
+    <rect x="${k.x - 8}" y="${k.y - 8}" width="16" height="16" rx="2" transform="rotate(45 ${k.x} ${k.y})" fill="${color}" stroke="#FFFFFF" stroke-width="2" class="pointer-events-auto cursor-grab hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="knee" data-knee-index="${i}" title="Drag to bend ◆ | Double-click to remove"></rect>
+  `).join('');
+}
+
 function updateCanvasSchematicArrows() {
   const svg = document.getElementById('canvas-schematic-svg');
   const workspace = document.getElementById('canvas-workspace');
@@ -1021,23 +1126,19 @@ function updateCanvasSchematicArrows() {
       if (!ev) return;
 
       const arrowId = `arrow-chw-${ch.id}-${evObj.id}`;
-      const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+      const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || {};
 
       // Stagger horizontally: each Chiller→EV pair gets its own x offset column
-      const offset = (chwArrowIdx - Math.floor(targetEvs.length / 2)) * 14 + off.x;
-      const startX = Math.round(c.centerX + offset);
-      const endX   = Math.round(ev.centerX + offset);
-      const startY = Math.round(c.bottom);
-      const endY   = Math.round(ev.y);
-      const midY   = Math.round((startY + endY) / 2 + off.y);
+      const offset = (chwArrowIdx - Math.floor(targetEvs.length / 2)) * 14 + (off.x || 0);
+      const startX = Math.round(c.centerX + offset + (off.startX || 0));
+      const endX   = Math.round(ev.centerX + offset + (off.endX || 0));
+      const startY = Math.round(c.bottom + (off.startY || 0));
+      const endY   = Math.round(ev.y + (off.endY || 0));
+      const midY   = Math.round((c.bottom + ev.y) / 2 + (off.y || 0));
 
       // Straight down if aligned, else step horizontally at midpoint
-      let d;
-      if (Math.abs(startX - endX) < 4) {
-        d = `M ${startX} ${startY} L ${startX} ${endY}`;
-      } else {
-        d = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
-      }
+      const knees = off.knees || [];
+      const d = buildArrowPath(startX, startY, endX, endY, knees, endX, midY);
 
       const labelX = Math.round((startX + endX) / 2);
       const labelY = Math.round(midY);
@@ -1045,13 +1146,17 @@ function updateCanvasSchematicArrows() {
       paths += `
         <!-- Chiller→EV ↓ (Blue 35%) -->
         <g class="arrow-group" data-arrow-id="${arrowId}">
-          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;"></path>
           <path d="${d}" fill="none" stroke="#0284C7" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-chw)" pointer-events="none"></path>
-          <circle cx="${labelX}" cy="${labelY}" r="5" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move arrow route"></circle>
-          <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move arrow route">
-            <rect x="${labelX - 20}" y="${labelY - 8}" width="40" height="14" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8" stroke-opacity="0.35"></rect>
-            <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#0284C7" fill-opacity="0.8" font-weight="bold">6.1°C</text>
-          </g>
+          <!-- Start Pin (Chiller exit) -->
+          <circle cx="${startX}" cy="${startY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (Chiller exit)"></circle>
+          <circle cx="${startX}" cy="${startY}" r="9" fill="#0284C7" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (Chiller exit)"></circle>
+          <!-- End Pin (EV inlet) -->
+          <circle cx="${endX}" cy="${endY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (EV inlet)"></circle>
+          <circle cx="${endX}" cy="${endY}" r="9" fill="#0284C7" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (EV inlet)"></circle>
+          <!-- Mid Handle (no label) -->
+          <circle cx="${labelX}" cy="${labelY}" r="5" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="mid" title="Drag whole pipe route | Dbl-click to add bend"></circle>
+          ${renderKneeHandles(arrowId, knees, '#0284C7')}
         </g>
       `;
       chwArrowIdx++;
@@ -1081,21 +1186,17 @@ function updateCanvasSchematicArrows() {
       if (!ahu) return;
 
       const arrowId = `arrow-ev-${evObj.id}-${ahuObj.id}`;
-      const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+      const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || {};
 
-      const offset = (evArrowIdx - Math.floor(targetAhus.length / 2)) * 14 + off.x;
-      const startX = Math.round(ev.centerX + offset);
-      const endX   = Math.round(ahu.centerX + offset);
-      const startY = Math.round(ev.bottom);
-      const endY   = Math.round(ahu.y);
-      const midY   = Math.round((startY + endY) / 2 + off.y);
+      const offset = (evArrowIdx - Math.floor(targetAhus.length / 2)) * 14 + (off.x || 0);
+      const startX = Math.round(ev.centerX + offset + (off.startX || 0));
+      const endX   = Math.round(ahu.centerX + offset + (off.endX || 0));
+      const startY = Math.round(ev.bottom + (off.startY || 0));
+      const endY   = Math.round(ahu.y + (off.endY || 0));
+      const midY   = Math.round((ev.bottom + ahu.y) / 2 + (off.y || 0));
 
-      let d;
-      if (Math.abs(startX - endX) < 4) {
-        d = `M ${startX} ${startY} L ${startX} ${endY}`;
-      } else {
-        d = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
-      }
+      const knees2 = off.knees || [];
+      const d = buildArrowPath(startX, startY, endX, endY, knees2, endX, midY);
 
       const labelX = Math.round((startX + endX) / 2);
       const labelY = Math.round(midY);
@@ -1103,13 +1204,17 @@ function updateCanvasSchematicArrows() {
       paths += `
         <!-- EV→AHU ↓ (Green 35%) -->
         <g class="arrow-group" data-arrow-id="${arrowId}">
-          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;"></path>
           <path d="${d}" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-ev)" pointer-events="none"></path>
-          <circle cx="${labelX}" cy="${labelY}" r="5" fill="#FFFFFF" stroke="#16A34A" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move arrow route"></circle>
-          <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move arrow route">
-            <rect x="${labelX - 22}" y="${labelY - 8}" width="44" height="14" rx="3" fill="#FFFFFF" stroke="#16A34A" stroke-width="0.8" stroke-opacity="0.35"></rect>
-            <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#16A34A" fill-opacity="0.8" font-weight="bold">Coil In</text>
-          </g>
+          <!-- Start Pin (EV outlet) -->
+          <circle cx="${startX}" cy="${startY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (EV outlet)"></circle>
+          <circle cx="${startX}" cy="${startY}" r="9" fill="#16A34A" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (EV outlet)"></circle>
+          <!-- End Pin (AHU coil inlet) -->
+          <circle cx="${endX}" cy="${endY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (AHU coil inlet)"></circle>
+          <circle cx="${endX}" cy="${endY}" r="9" fill="#16A34A" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (AHU coil inlet)"></circle>
+          <!-- Mid Handle (no label) -->
+          <circle cx="${labelX}" cy="${labelY}" r="5" fill="#FFFFFF" stroke="#16A34A" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="mid" title="Drag whole coil pipe route | Dbl-click to add bend"></circle>
+          ${renderKneeHandles(arrowId, knees2, '#16A34A')}
         </g>
       `;
       evArrowIdx++;
@@ -1182,35 +1287,43 @@ function updateCanvasSchematicArrows() {
     if (!c || !a) return;
 
     const arrowId = `arrow-return-${pair.ahu.id}-${pair.chiller.id}`;
-    const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+    const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || {};
 
     // Each pair gets its own Y level in the return channel (stacked, 20px apart)
-    const returnY = returnChannelBaseY + pairIdx * 20 + off.y;
+    const returnY = Math.round(returnChannelBaseY + pairIdx * 20 + (off.y || 0));
 
     // Exit the AHU left-side center; re-enter the chiller left-side bottom
-    const ahuExitX    = Math.round(a.x);
-    const ahuExitY    = Math.round(a.centerY);
-    const chillerEntX = Math.round(c.x);
-    const chillerEntY = Math.round(c.bottom);
+    const ahuExitX    = Math.round(a.x + (off.startX || 0));
+    const ahuExitY    = Math.round(a.centerY + (off.startY || 0));
+    const chillerEntX = Math.round(c.x + (off.endX || 0));
+    const chillerEntY = Math.round(c.bottom + (off.endY || 0));
 
     // Left corridor X: 20px left of the leftmost plant card, stagger per pair
-    const corridorX   = Math.round(plantLeftMin - 24 - pairIdx * 16 + off.x);
+    const corridorX   = Math.round(plantLeftMin - 24 - pairIdx * 16 + (off.x || 0));
 
-    const d = `M ${ahuExitX} ${ahuExitY} L ${corridorX} ${ahuExitY} L ${corridorX} ${returnY} L ${chillerEntX} ${returnY} L ${chillerEntX} ${chillerEntY}`;
+    // Build path: knees override the default L-shaped corridor route
+    const kneesR = off.knees || [];
+    const d = kneesR.length > 0
+      ? buildArrowPath(ahuExitX, ahuExitY, chillerEntX, chillerEntY, kneesR)
+      : `M ${ahuExitX} ${ahuExitY} L ${corridorX} ${ahuExitY} L ${corridorX} ${returnY} L ${chillerEntX} ${returnY} L ${chillerEntX} ${chillerEntY}`;
     const labelX = Math.round((corridorX + chillerEntX) / 2);
     const labelY = returnY;
-    const returnLabel = returnPairs.length > 1 ? `${pair.ahu.name} Rtn 12.8°C` : `Hydronic Return 12.8°C`;
+    const returnLabel = returnPairs.length > 1 ? `${pair.ahu.name} Return` : `Hydronic Return`;
 
     paths += `
       <!-- Hydronic Return ${pair.ahu.name} → ${pair.chiller.name} (grey dashed 60%) -->
       <g class="arrow-group" data-arrow-id="${arrowId}">
-        <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+        <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;"></path>
         <path d="${d}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-return)" pointer-events="none"></path>
-        <circle cx="${corridorX}" cy="${returnY}" r="5" fill="#FFFFFF" stroke="#64748B" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move return channel"></circle>
-        <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move return channel">
-          <rect x="${labelX - 58}" y="${labelY - 8}" width="116" height="15" rx="3" fill="#FFFFFF" stroke="#64748B" stroke-width="0.8" stroke-opacity="0.6"></rect>
-          <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#64748B" fill-opacity="0.8">◀ ${returnLabel} ◀</text>
-        </g>
+        <!-- Start Pin (AHU return outlet) -->
+        <circle cx="${ahuExitX}" cy="${ahuExitY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (AHU return outlet)"></circle>
+        <circle cx="${ahuExitX}" cy="${ahuExitY}" r="9" fill="#64748B" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (AHU return outlet)"></circle>
+        <!-- End Pin (Chiller return inlet) -->
+        <circle cx="${chillerEntX}" cy="${chillerEntY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (Chiller return inlet)"></circle>
+        <circle cx="${chillerEntX}" cy="${chillerEntY}" r="9" fill="#64748B" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="end" title="Drag arrow end point (Chiller return inlet)"></circle>
+        <!-- Channel bend handle (no label) -->
+        <circle cx="${corridorX}" cy="${returnY}" r="5" fill="#FFFFFF" stroke="#64748B" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="mid" title="Drag return line corridor | Dbl-click to add bend"></circle>
+        ${renderKneeHandles(arrowId, kneesR, '#64748B')}
       </g>
     `;
   });
@@ -1247,50 +1360,66 @@ function updateCanvasSchematicArrows() {
     const minRoomTop = Math.min(...connectedRoomDivs.map(d => getCoords(d)?.y || 480));
 
     const arrowId = `arrow-air-${ahuObj.id}`;
-    const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+    const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || {};
 
     // Each AHU gets its own manifold level, stacked above zones area
-    const manifoldY = Math.round(minRoomTop - 36 - ahuIdx * 22 + off.y);
+    const manifoldY = Math.round(minRoomTop - 36 - ahuIdx * 22 + (off.y || 0));
 
     // Exit right side of AHU, then rise to manifold
-    const exitX  = Math.round(ahu.right);
-    const exitY  = Math.round(ahu.centerY);
-    const riserX = Math.round(ahu.right + 30 + ahuIdx * 20 + off.x);
+    const exitX  = Math.round(ahu.right + (off.startX || 0));
+    const exitY  = Math.round(ahu.centerY + (off.startY || 0));
+    const riserX = Math.round(ahu.right + 30 + ahuIdx * 20 + (off.x || 0));
     const exitPath = `M ${exitX} ${exitY} L ${riserX} ${exitY} L ${riserX} ${manifoldY}`;
 
     const roomDrops = connectedRoomDivs.map(div => {
       const rc = getCoords(div);
       if (!rc) return null;
+      const roomId = div.id.replace('room-card-', '');
+      const dropArrowId = `arrow-drop-${ahuObj.id}-${roomId}`;
+      const dropOff = (state.arrowOffsets && state.arrowOffsets[dropArrowId]) || {};
+
       const vavEl = div.querySelector('[id*="vav"]');
       const vavCoords = vavEl ? getCoords(vavEl) : null;
       const baseDropX = vavCoords ? Math.round(vavCoords.centerX) : Math.round(rc.centerX);
-      const dropX = baseDropX + (ahuIdx * 14 - (ahus.length - 1) * 7);
-      return { x: dropX, top: Math.round(rc.y) };
+      const dropX = Math.round(baseDropX + (ahuIdx * 14 - (ahus.length - 1) * 7) + (dropOff.x || 0) + (dropOff.endX || 0));
+      const dropTop = Math.round(rc.y - 4 + (dropOff.y || 0) + (dropOff.endY || 0));
+      return { x: dropX, top: dropTop, id: dropArrowId };
     }).filter(Boolean);
 
     if (roomDrops.length > 0) {
       const minX = Math.min(...roomDrops.map(d => d.x), riserX);
       const maxX = Math.max(...roomDrops.map(d => d.x), riserX);
+      const kneesAir = off.knees || [];
 
       paths += `
         <!-- AHU air trunk ${ahuObj.name} (orange 60%) -->
         <g class="arrow-group" data-arrow-id="${arrowId}">
-          <path d="${exitPath}" fill="none" stroke="transparent" stroke-width="20" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="${exitPath}" fill="none" stroke="transparent" stroke-width="20" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;"></path>
           <path d="${exitPath}" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="3.5" stroke-opacity="0.6" pointer-events="none"></path>
-          <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="transparent" stroke-width="20" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="transparent" stroke-width="20" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" data-handle="mid" style="pointer-events:stroke;"></path>
           <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-opacity="0.6" pointer-events="none"></path>
-          <circle cx="${riserX}" cy="${manifoldY}" r="6" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="2.5" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move supply air manifold & riser"></circle>
-          <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move supply air manifold & riser">
-            <rect x="${riserX - 46}" y="${manifoldY - 18}" width="92" height="16" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8" stroke-opacity="0.6"></rect>
-            <text x="${riserX}" y="${manifoldY - 6}" text-anchor="middle" font-size="9" fill="#ff7a1a" fill-opacity="0.8" font-weight="bold">Supply Air (${ahuObj.name})</text>
-          </g>
+          <!-- Start Pin (AHU supply air outlet) -->
+          <circle cx="${exitX}" cy="${exitY}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (AHU supply outlet)"></circle>
+          <circle cx="${exitX}" cy="${exitY}" r="9" fill="#ff7a1a" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${arrowId}" data-handle="start" title="Drag arrow start point (AHU supply outlet)"></circle>
+          <!-- Manifold & Riser Handle -->
+          <circle cx="${riserX}" cy="${manifoldY}" r="6" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" data-handle="mid" title="Drag supply air manifold & riser | Dbl-click to add bend"></circle>
+          ${renderKneeHandles(arrowId, kneesAir, '#ff7a1a')}
         </g>
       `;
 
       roomDrops.forEach(drop => {
+        const dropKnees = (state.arrowOffsets && state.arrowOffsets[drop.id] && state.arrowOffsets[drop.id].knees) || [];
+        const dropPath = buildArrowPath(drop.x, manifoldY, drop.x, drop.top, dropKnees);
         paths += `
           <!-- Air drop to room -->
-          <path d="M ${drop.x} ${manifoldY} L ${drop.x} ${drop.top - 4}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-air)" pointer-events="none"></path>
+          <g class="arrow-group" data-arrow-id="${drop.id}">
+            <path d="${dropPath}" fill="none" stroke="transparent" stroke-width="16" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${drop.id}" data-handle="mid" style="pointer-events:stroke;"></path>
+            <path d="${dropPath}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-air)" pointer-events="none"></path>
+            <!-- End Pin (Room VAV inlet) -->
+            <circle cx="${drop.x}" cy="${drop.top}" r="20" fill="transparent" class="pointer-events-auto cursor-crosshair" data-arrow-id="${drop.id}" data-handle="end" title="Drag arrow end point (Room air terminal entry)"></circle>
+            <circle cx="${drop.x}" cy="${drop.top}" r="9" fill="#ff7a1a" stroke="#FFFFFF" stroke-width="2.5" class="pointer-events-auto cursor-crosshair hover:scale-[1.8] transition-transform" data-arrow-id="${drop.id}" data-handle="end" title="Drag arrow end point (Room air terminal entry)"></circle>
+            ${renderKneeHandles(drop.id, dropKnees, '#ff7a1a')}
+          </g>
         `;
       });
     }
@@ -1308,8 +1437,14 @@ function selectEntity(type, id) {
 
   if (type === 'room') {
     state.selectedEntity = (state.topology.rooms || []).find(r => r.id === id);
+    if (!state.expandedRooms) state.expandedRooms = new Set();
+    state.expandedRooms.add(id);
   } else if (type === 'equipment') {
     state.selectedEntity = (state.topology.room_equipment || []).concat(state.topology.shared_equipment || []).find(e => e.id === id);
+    if (state.selectedEntity && state.selectedEntity.room_id) {
+      if (!state.expandedRooms) state.expandedRooms = new Set();
+      state.expandedRooms.add(state.selectedEntity.room_id);
+    }
   } else if (type === 'floor') {
     state.selectedEntity = (state.topology.floors || []).find(f => f.id === id);
   } else if (type === 'building') {
@@ -3297,15 +3432,18 @@ function switchCanvasView(viewType) {
 }
 
 function toggleRoom(roomId) {
+  if (!state.expandedRooms) state.expandedRooms = new Set();
   const content = document.getElementById('content-' + roomId);
   const caret = document.getElementById('caret-' + roomId);
   if (!content || !caret) return;
   if (content.classList.contains('hidden')) {
     content.classList.remove('hidden');
     caret.classList.add('rotate-90');
+    state.expandedRooms.add(roomId);
   } else {
     content.classList.add('hidden');
     caret.classList.remove('rotate-90');
+    state.expandedRooms.delete(roomId);
   }
 }
 
