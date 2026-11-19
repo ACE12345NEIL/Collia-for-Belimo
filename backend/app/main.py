@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 from backend.app.api.configuration_router import router as configuration_router
 from backend.app.api.csv_router import router as csv_router
+from backend.app.api.extraction_router import router as extraction_router
 
 # Calculate base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -45,6 +46,7 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # Include API Routers
 app.include_router(configuration_router)
 app.include_router(csv_router)
+app.include_router(extraction_router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -65,9 +67,10 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "BELIMO | Collia",
-        "stage": "Stage 4 — CSV Folder Integration",
+        "stage": "Stage 5 — CSV Extraction and Data Validation",
         "csv_dir": str(DATA_DIR / "csv"),
-        "config_dir": str(DATA_DIR / "configuration")
+        "config_dir": str(DATA_DIR / "configuration"),
+        "processed_dir": str(DATA_DIR / "processed"),
     }
 
 

@@ -15,6 +15,7 @@ const state = {
   panY: 32,
   activeTab: 'layout',
   csvStatuses: {},
+  extractions: {},
   boxPositions: {},
   arrowOffsets: {}
 };
@@ -815,26 +816,47 @@ function renderCanvas() {
       const isSelected = state.selectedEntity && state.selectedEntity.id === eq.id;
       const csvInfo = state.csvStatuses ? state.csvStatuses[eq.id] : null;
       const hasData = csvInfo && csvInfo.status === 'HAS_DATA' && csvInfo.row_count > 0;
+      const ext = (state.extractions && state.extractions[eq.id]) || null;
+      const readings = ext?.latest_readings || {};
 
       let icon = 'mode_fan';
       let sublabel = 'Air Handling Unit';
       let cardWidth = 'min-w-[130px] w-auto';
-      let statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">Supply Fan</span><span class="${hasData ? 'text-status-success font-medium' : 'font-medium'}">${hasData ? 'Auto' : '--'}</span></div>`;
+      let statHtml = '';
 
       if (eq.equipment_type === 'CHILLER') {
         icon = 'ac_unit';
         sublabel = 'Central Chiller';
         cardWidth = 'min-w-[120px] w-auto';
-        statHtml = hasData 
-          ? `<div class="font-code-xs text-[10px] text-status-success flex items-center gap-1 mt-1 border-t border-border-subtle pt-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Running</div>`
-          : `<div class="font-code-xs text-[10px] text-secondary flex items-center gap-1 mt-1 border-t border-border-subtle pt-1"><span class="w-1.5 h-1.5 rounded-full bg-border-strong"></span><span>--</span></div>`;
+        if (hasData) {
+          const chwTemp = readings.CHW_Supply_Temp !== undefined ? `${readings.CHW_Supply_Temp}°C` : '';
+          const opStatus = readings.Operating_Status === 1 ? 'Running' : (readings.Operating_Status === 0 ? 'Standby' : 'Active');
+          statHtml = `<div class="font-code-xs text-[10px] text-status-success flex items-center justify-between gap-1 mt-1 border-t border-border-subtle pt-1"><div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-status-success"></span><span>${opStatus}</span></div><span class="text-primary font-mono">${chwTemp}</span></div>`;
+        } else {
+          statHtml = `<div class="font-code-xs text-[10px] text-secondary flex items-center gap-1 mt-1 border-t border-border-subtle pt-1"><span class="w-1.5 h-1.5 rounded-full bg-border-strong"></span><span>--</span></div>`;
+        }
       } else if (eq.equipment_type === 'EV') {
         icon = 'speed';
         sublabel = 'Energy Valve';
         cardWidth = 'min-w-[130px] w-auto';
-        statHtml = hasData
-          ? `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: 6.7°C</span><span class="">14.2 m³/h</span></div>`
-          : `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT:</span><span class="">--</span><span class="">Flow:</span><span class="">--</span></div>`;
+        if (hasData) {
+          const t1 = readings.T1;
+          const t2 = readings.T2;
+          const deltaT = (t1 !== undefined && t2 !== undefined) ? `${Math.abs(t2 - t1).toFixed(1)}°C` : '--';
+          const flow = readings.Flow_Rate !== undefined ? `${readings.Flow_Rate} m³/h` : '--';
+          statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT: ${deltaT}</span><span class="text-primary font-mono">${flow}</span></div>`;
+        } else {
+          statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">ΔT:</span><span class="">--</span><span class="">Flow:</span><span class="">--</span></div>`;
+        }
+      } else {
+        // AHU
+        if (hasData) {
+          const fan = readings.Fan_Speed !== undefined ? `${readings.Fan_Speed} RPM` : 'Auto';
+          const sat = readings.Supply_Air_Temp !== undefined ? `${readings.Supply_Air_Temp}°C` : '';
+          statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">Fan: ${fan}</span><span class="text-status-success font-medium">${sat}</span></div>`;
+        } else {
+          statHtml = `<div class="flex items-center justify-between mt-1 font-code-xs text-[10px] text-secondary border-t border-border-subtle pt-1"><span class="">Supply Fan</span><span class="font-medium">--</span></div>`;
+        }
       }
 
       const card = document.createElement('div');
@@ -974,7 +996,17 @@ function renderCanvas() {
 
             const eqCsvInfo = state.csvStatuses ? state.csvStatuses[eq.id] : null;
             const eqHasData = eqCsvInfo && eqCsvInfo.status === 'HAS_DATA' && eqCsvInfo.row_count > 0;
-            const statVal = eqHasData ? (isVav ? 'Normal' : 'Active') : '--';
+            const eqExt = (state.extractions && state.extractions[eq.id]) || null;
+            const eqReadings = eqExt?.latest_readings || {};
+
+            let statVal = '--';
+            if (eqHasData) {
+              if (isVav) {
+                statVal = eqReadings.Airflow !== undefined ? `${eqReadings.Airflow} L/s` : 'Normal';
+              } else {
+                statVal = eqReadings.Temperature !== undefined ? `${eqReadings.Temperature}°C` : 'Active';
+              }
+            }
 
             devicesHtml += `
               <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto min-w-[125px]" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
@@ -1605,6 +1637,9 @@ function openDetailDrawer(type, entity) {
           <span>Edit Connections (${entity.equipment_type})</span>
         `;
       }
+
+      // Populate Stage 5 Extracted Telemetry & Data Validation
+      renderDrawerExtraction(entity.id);
     } else {
       equipmentFields.classList.add('hidden');
       if (btnConfigureConn) btnConfigureConn.classList.add('hidden');
@@ -1702,6 +1737,105 @@ function closeDetailDrawer() {
   const drawer = document.getElementById('entity-detail-drawer');
   if (drawer) {
     drawer.classList.add('translate-x-full');
+  }
+}
+
+async function renderDrawerExtraction(equipmentId) {
+  const container = document.getElementById('drawer-extraction-container');
+  if (!container) return;
+
+  const qualityBadge = document.getElementById('drawer-extraction-quality');
+  const metaEl = document.getElementById('drawer-extraction-meta');
+  const readingsEl = document.getElementById('drawer-extraction-readings');
+  const flagsEl = document.getElementById('drawer-extraction-flags');
+
+  let extraction = (state.extractions && state.extractions[equipmentId]) || null;
+
+  // If not yet loaded or doesn't have full fields, fetch single
+  if (!extraction || !extraction.column_mappings) {
+    try {
+      const res = await fetch(`/api/extraction/equipment/${equipmentId}`);
+      if (res.ok) {
+        extraction = await res.json();
+        if (!state.extractions) state.extractions = {};
+        state.extractions[equipmentId] = extraction;
+      }
+    } catch (e) {
+      console.warn('Could not fetch extraction for', equipmentId, e);
+    }
+  }
+
+  if (!extraction) {
+    if (qualityBadge) {
+      qualityBadge.className = 'font-code-xs text-[10px] px-1.5 py-0.5 rounded border border-border-subtle bg-surface-subtle text-secondary font-semibold uppercase';
+      qualityBadge.innerText = 'NO DATA';
+    }
+    if (metaEl) metaEl.innerHTML = '<span class="italic text-secondary">No telemetry data extracted yet. Click "Scan & Process CSVs" to run extraction.</span>';
+    if (readingsEl) readingsEl.innerHTML = '';
+    if (flagsEl) flagsEl.innerHTML = '';
+    return;
+  }
+
+  // Quality badge styling
+  const q = extraction.quality || 'EMPTY';
+  let qClass = 'bg-surface-subtle border-border-subtle text-secondary';
+  if (q === 'GOOD') qClass = 'bg-status-success/10 border-status-success/40 text-status-success';
+  else if (q === 'PARTIAL') qClass = 'bg-status-warning/10 border-status-warning/40 text-status-warning';
+  else if (q === 'INVALID') qClass = 'bg-error/10 border-error/40 text-error';
+
+  if (qualityBadge) {
+    qualityBadge.className = `font-code-xs text-[10px] px-2 py-0.5 rounded border ${qClass} font-semibold uppercase`;
+    qualityBadge.innerText = q;
+  }
+
+  // Meta row: source file, total rows, valid rows, latest timestamp (last row)
+  if (metaEl) {
+    const tsStr = extraction.latest_timestamp || '--';
+    metaEl.innerHTML = `
+      <span>Source: <strong class="text-on-surface font-mono">${extraction.source_csv || '—'}</strong></span>
+      <span>Rows: <strong class="text-on-surface">${extraction.total_rows || 0}</strong> (Valid: <strong class="text-status-success">${extraction.valid_rows || 0}</strong>)</span>
+      <span>Last Timestamp: <strong class="text-primary font-mono">${tsStr}</strong></span>
+    `;
+  }
+
+  // Extracted Readings (Key-value cards from last row)
+  if (readingsEl) {
+    const readings = extraction.latest_readings || {};
+    const keys = Object.keys(readings);
+    if (keys.length === 0) {
+      readingsEl.innerHTML = `<div class="col-span-2 font-code-xs text-[11px] text-secondary italic py-1">No reading values present in CSV.</div>`;
+    } else {
+      readingsEl.innerHTML = keys.map(k => {
+        const val = readings[k];
+        const displayVal = (val !== null && val !== undefined && val !== '') ? val : '--';
+        return `
+          <div class="flex items-center justify-between p-1.5 rounded bg-surface-canvas border border-border-subtle font-code-xs text-[11px]">
+            <span class="text-secondary truncate mr-1" title="${k}">${k}</span>
+            <span class="font-semibold text-primary font-mono shrink-0">${displayVal}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // Validation flags / warnings (if any)
+  if (flagsEl) {
+    const flags = extraction.validation_flags || [];
+    if (flags.length > 0) {
+      flagsEl.innerHTML = `
+        <div class="text-[10px] font-semibold text-status-warning uppercase tracking-wide mt-1">Validation Warnings (${flags.length})</div>
+        <div class="max-h-28 overflow-y-auto flex flex-col gap-1 pr-1">
+          ${flags.slice(0, 5).map(f => `
+            <div class="p-1 rounded bg-status-warning/10 border border-status-warning/20 font-code-xs text-[10px] text-on-surface">
+              <span class="font-semibold text-status-warning">[${f.flag_type}]</span> ${f.detail}
+            </div>
+          `).join('')}
+          ${flags.length > 5 ? `<div class="text-[9px] text-secondary font-code-xs italic">+${flags.length - 5} more warnings</div>` : ''}
+        </div>
+      `;
+    } else {
+      flagsEl.innerHTML = '';
+    }
   }
 }
 
@@ -3639,11 +3773,25 @@ async function fetchCsvStatus() {
     if (resp.ok) {
       const data = await resp.json();
       state.csvStatuses = data.equipment_statuses || {};
-      renderTopology();
     }
   } catch (err) {
     console.warn('Could not fetch CSV status:', err);
   }
+
+  try {
+    const extResp = await fetch('/api/extraction/summary');
+    if (extResp.ok) {
+      const extData = await extResp.json();
+      state.extractions = {};
+      (extData.equipment || []).forEach(item => {
+        state.extractions[item.equipment_id] = item;
+      });
+    }
+  } catch (err) {
+    console.warn('Could not fetch extraction summary:', err);
+  }
+
+  renderTopology();
 }
 
 async function processCsvData() {
@@ -3659,13 +3807,30 @@ async function processCsvData() {
     const data = await resp.json();
 
     state.csvStatuses = data.equipment_statuses || {};
-    // Re-render UI to apply dots
+
+    // Run Stage 5 CSV Extraction and Data Validation across all equipment
+    try {
+      const extResp = await fetch('/api/extraction/run', { method: 'POST' });
+      if (extResp.ok) {
+        const extData = await extResp.json();
+        state.extractions = extData.equipment_results || {};
+      }
+    } catch (extErr) {
+      console.warn('Extraction pipeline error:', extErr);
+    }
+
+    // Re-render UI to apply dots and live telemetry
     renderTopology();
+
+    // If detail drawer is open for equipment, refresh its extraction section
+    if (state.selectedEntity && state.selectedType === 'equipment') {
+      renderDrawerExtraction(state.selectedEntity.id);
+    }
 
     if (data.missing_count > 0) {
       showToast(`Scan complete: ${data.total_files_found} files found. ${data.missing_count} missing file(s) marked with red dot.`, true);
     } else {
-      showToast(`Scan complete: All ${data.total_files_found} files verified and processed.`, false);
+      showToast(`Stage 5 complete: Extracted and validated telemetry for all equipment.`, false);
     }
 
     btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span><span>Processed</span>`;

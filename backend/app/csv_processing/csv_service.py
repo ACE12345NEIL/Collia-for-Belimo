@@ -286,7 +286,15 @@ class CSVService:
                     f"CSV file not found in {self.csv_dir}: {filename!r}"
                 )
         try:
-            return pd.read_csv(path)
+            # 1. Try utf-8-sig with automatic separator detection (handles comma, semicolon, tab, and BOM)
+            try:
+                df = pd.read_csv(path, sep=None, engine="python", encoding="utf-8-sig")
+            except Exception:
+                df = pd.read_csv(path, encoding="utf-8-sig")
+
+            # Clean headers: strip whitespace and remove any stray BOM (\ufeff) or wrapping quotes
+            df.columns = [str(c).strip().replace("\ufeff", "").strip('"\'') for c in df.columns]
+            return df
         except Exception as exc:  # noqa: BLE001
             raise CSVReadError(
                 f"Failed to parse {filename!r}: {exc}"

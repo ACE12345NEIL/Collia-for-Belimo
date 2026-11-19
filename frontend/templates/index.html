@@ -404,6 +404,20 @@
         <span class="font-label-sm text-label-sm text-secondary font-medium">Standard Parameters Reference:</span>
         <div class="flex flex-wrap gap-1" id="drawer-params-list"></div>
       </div>
+
+      <!-- Stage 5: Extracted Telemetry & Data Validation -->
+      <div id="drawer-extraction-container" class="mt-2 pt-2 border-t border-border-subtle flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <span class="font-label-sm text-label-sm text-on-surface font-semibold flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-primary">data_check</span>
+            <span>Extracted Telemetry (Stage 5)</span>
+          </span>
+          <span id="drawer-extraction-quality" class="font-code-xs text-[10px] px-1.5 py-0.5 rounded border border-border-subtle bg-surface-subtle text-secondary font-semibold uppercase">EMPTY</span>
+        </div>
+        <div id="drawer-extraction-meta" class="font-code-xs text-[11px] text-secondary flex flex-wrap gap-x-3 gap-y-1"></div>
+        <div id="drawer-extraction-readings" class="grid grid-cols-2 gap-1.5"></div>
+        <div id="drawer-extraction-flags" class="flex flex-col gap-1"></div>
+      </div>
     </div>
 
     <!-- Room Specific Fields -->
@@ -1086,5 +1100,5 @@
 </div>
 
 <!-- Linked Client Application Logic -->
-<script src="/static/js/app.js?v=5.1"></script>
+<script src="/static/js/app.js?v=6.0"></script>
 </body></html>
