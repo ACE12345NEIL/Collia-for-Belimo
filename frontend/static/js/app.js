@@ -13,7 +13,10 @@ const state = {
   currentZoom: 1.0,
   panX: 32,
   panY: 32,
-  activeTab: 'layout'
+  activeTab: 'layout',
+  csvStatuses: {},
+  boxPositions: {},
+  arrowOffsets: {}
 };
 
 let toastTimer = null;
@@ -24,6 +27,8 @@ let toastTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   loadTopology();
+  // Fetch initial CSV status on boot (directory is opened on-demand via the button)
+  fetchCsvStatus();
 });
 
 function initEventListeners() {
@@ -59,6 +64,9 @@ function initEventListeners() {
 
   // Google Maps-style pan + zoom on canvas
   initCanvasInteraction();
+
+  // Draggable Plant box and Floor boxes with real-time arrow routing
+  initDraggableBoxes();
 }
 
 // -------------------------------------------------------------
@@ -89,7 +97,9 @@ function initCanvasInteraction() {
     const tag = e.target.tagName.toLowerCase();
     const isInteractive = ['button', 'input', 'select', 'textarea', 'a', 'label'].includes(tag);
     const isInsideCard = e.target.closest('[id^="node-"], [id^="room-card-"], .modal, [data-no-pan]');
-    if (isInteractive || isInsideCard) return;
+    const isDraggableBox = e.target.closest('#plant-boundary-box, .floor-group-container');
+    const isDraggableArrow = e.target.closest('[data-arrow-id]');
+    if (isInteractive || isInsideCard || isDraggableBox || isDraggableArrow) return;
 
     isPanning = true;
     startMouseX = e.clientX;
@@ -123,7 +133,7 @@ function initCanvasInteraction() {
     const mouseY = e.clientY - rect.top;
 
     const delta = e.deltaY > 0 ? -0.08 : 0.08;
-    const newZoom = Math.min(Math.max(state.currentZoom + delta, 0.3), 2.5);
+    const newZoom = Math.min(Math.max(state.currentZoom + delta, 0.15), 3.0);
     const zoomRatio = newZoom / state.currentZoom;
 
     // Adjust pan so the point under the cursor stays fixed
@@ -157,13 +167,305 @@ function initCanvasInteraction() {
 }
 
 // -------------------------------------------------------------
+// Draggable Section Boxes & Movable Arrows
+// User can drag Plant box, Floor boxes, and any Arrow route freely
+// -------------------------------------------------------------
+function initDraggableBoxes() {
+  const workspace = document.getElementById('canvas-workspace');
+  const viewport = document.getElementById('canvas-viewport');
+  if (!workspace || !viewport) return;
+
+  // Restore saved positions from localStorage
+  try {
+    const saved = localStorage.getItem('collia_box_positions');
+    if (saved) {
+      state.boxPositions = Object.assign({}, JSON.parse(saved), state.boxPositions || {});
+    }
+  } catch (err) {
+    console.warn('Could not read collia_box_positions from localStorage:', err);
+  }
+
+  // Restore saved arrow offsets from localStorage
+  try {
+    const savedArrows = localStorage.getItem('collia_arrow_offsets');
+    if (savedArrows) {
+      state.arrowOffsets = Object.assign({}, JSON.parse(savedArrows), state.arrowOffsets || {});
+    }
+  } catch (err) {
+    console.warn('Could not read collia_arrow_offsets from localStorage:', err);
+  }
+
+  if (!state.boxPositions) state.boxPositions = {};
+  if (!state.arrowOffsets) state.arrowOffsets = {};
+
+  // Apply any restored positions to existing DOM nodes
+  const plantBox = document.getElementById('plant-boundary-box');
+  if (plantBox && state.boxPositions['plant-boundary-box']) {
+    const pos = state.boxPositions['plant-boundary-box'];
+    plantBox.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+  }
+  document.querySelectorAll('.floor-group-container').forEach(el => {
+    if (state.boxPositions[el.id]) {
+      const pos = state.boxPositions[el.id];
+      el.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+    }
+  });
+
+  let dragMode = null; // 'box' | 'arrow' | null
+  let activeTarget = null;
+  let activeKey = '';
+  let startMouseX = 0, startMouseY = 0;
+  let initialOffsetX = 0, initialOffsetY = 0;
+  let isDragging = false;
+  let rafId = null;
+
+  workspace.addEventListener('mousedown', e => {
+    if (e.button !== 0) return; // Only left-click
+
+    // Never drag on interactive form controls
+    const tag = e.target.tagName.toLowerCase();
+    if (['button', 'input', 'select', 'textarea', 'a'].includes(tag) || e.target.closest('button, input, select, textarea, a, .modal')) {
+      return;
+    }
+
+    // 1. Check if clicking on a movable Arrow (path, handle, or label badge)
+    const arrowEl = e.target.closest('[data-arrow-id]');
+    if (arrowEl) {
+      const arrowId = arrowEl.getAttribute('data-arrow-id');
+      if (arrowId) {
+        dragMode = 'arrow';
+        activeTarget = arrowEl;
+        activeKey = arrowId;
+        startMouseX = e.clientX;
+        startMouseY = e.clientY;
+        isDragging = false;
+
+        const savedOff = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+        initialOffsetX = savedOff.x;
+        initialOffsetY = savedOff.y;
+
+        viewport.style.cursor = 'grabbing';
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // Never drag box when clicking inside equipment cards or room cards
+    if (e.target.closest('[id^="node-"], [id^="room-card-"]')) {
+      return;
+    }
+
+    // 2. Check if clicking Plant box or Floor box
+    const plantEl = e.target.closest('#plant-boundary-box');
+    const floorEl = e.target.closest('.floor-group-container');
+
+    let target = null;
+    let key = '';
+
+    if (plantEl) {
+      target = plantEl;
+      key = 'plant-boundary-box';
+    } else if (floorEl) {
+      target = floorEl;
+      key = floorEl.id || 'floor-box-default';
+    }
+
+    if (!target) return;
+
+    dragMode = 'box';
+    activeTarget = target;
+    activeKey = key;
+    startMouseX = e.clientX;
+    startMouseY = e.clientY;
+    isDragging = false;
+
+    const saved = (state.boxPositions && state.boxPositions[activeKey]) || { x: 0, y: 0 };
+    initialOffsetX = saved.x;
+    initialOffsetY = saved.y;
+
+    activeTarget.style.transition = 'none';
+    activeTarget.style.willChange = 'transform';
+    activeTarget.classList.add('ring-2', 'ring-primary/60', 'shadow-md');
+
+    e.stopPropagation();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!dragMode) return;
+
+    const dx = e.clientX - startMouseX;
+    const dy = e.clientY - startMouseY;
+
+    if (!isDragging && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+      isDragging = true;
+      document.body.style.userSelect = 'none';
+      viewport.style.cursor = 'grabbing';
+      if (activeTarget && activeTarget.style) {
+        activeTarget.style.cursor = 'grabbing';
+      }
+    }
+
+    if (isDragging) {
+      const scale = state.currentZoom || 1.0;
+      const newX = Math.round(initialOffsetX + dx / scale);
+      const newY = Math.round(initialOffsetY + dy / scale);
+
+      if (dragMode === 'box') {
+        activeTarget.style.transform = `translate(${newX}px, ${newY}px)`;
+        if (!state.boxPositions) state.boxPositions = {};
+        state.boxPositions[activeKey] = { x: newX, y: newY };
+      } else if (dragMode === 'arrow') {
+        if (!state.arrowOffsets) state.arrowOffsets = {};
+        state.arrowOffsets[activeKey] = { x: newX, y: newY };
+      }
+
+      // Update connecting SVG arrows in real-time
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          updateCanvasSchematicArrows();
+          rafId = null;
+        });
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', e => {
+    if (!dragMode) return;
+
+    const mode = dragMode;
+    const target = activeTarget;
+    const key = activeKey;
+    const didDrag = isDragging;
+
+    if (mode === 'box' && target) {
+      target.style.transition = '';
+      target.style.willChange = '';
+      target.style.cursor = '';
+      target.classList.remove('ring-2', 'ring-primary/60', 'shadow-md');
+    }
+
+    viewport.style.cursor = '';
+    document.body.style.userSelect = '';
+
+    dragMode = null;
+    activeTarget = null;
+    activeKey = '';
+    isDragging = false;
+
+    if (didDrag) {
+      if (mode === 'box') {
+        try {
+          localStorage.setItem('collia_box_positions', JSON.stringify(state.boxPositions));
+        } catch (err) {}
+      } else if (mode === 'arrow') {
+        try {
+          localStorage.setItem('collia_arrow_offsets', JSON.stringify(state.arrowOffsets));
+        } catch (err) {}
+      }
+      updateCanvasSchematicArrows();
+    } else if (mode === 'box') {
+      // If user simply clicked on the floor badge without dragging, select that floor
+      const badge = e.target.closest('.floor-drag-handle');
+      if (badge && target) {
+        const floorId = target.id ? target.id.replace('floor-box-', '') : null;
+        if (floorId) {
+          selectEntity('floor', floorId);
+        }
+      }
+    }
+  });
+}
+
+function resetBoxPositions() {
+  state.boxPositions = {};
+  state.arrowOffsets = {};
+  try {
+    localStorage.removeItem('collia_box_positions');
+    localStorage.removeItem('collia_arrow_offsets');
+  } catch (err) {}
+
+  const plantBox = document.getElementById('plant-boundary-box');
+  if (plantBox) {
+    plantBox.style.transform = '';
+  }
+
+  document.querySelectorAll('.floor-group-container').forEach(el => {
+    el.style.transform = '';
+  });
+
+  updateCanvasSchematicArrows();
+  showToast('Plant, Floor, and Arrow positions reset to default', 'info');
+}
+
+// -------------------------------------------------------------
+// CSV Health & Status Indicator Helpers
+// -------------------------------------------------------------
+function renderCsvStatusDot(eqId) {
+  const statusInfo = state.csvStatuses ? state.csvStatuses[eqId] : null;
+  const allEq = [...(state.topology?.room_equipment || []), ...(state.topology?.shared_equipment || [])];
+  const eq = allEq.find(e => e.id === eqId);
+
+  // If status is not yet loaded or equipment has no file assigned
+  if (!statusInfo) {
+    if (!eq || !eq.csv_filename) {
+      return `<span style="display:inline-block;width:12px;height:12px;min-width:12px;min-height:12px;border-radius:50%;background-color:#dc2626;box-shadow:0 0 0 2px rgba(220,38,38,0.25);" class="shrink-0" title="Box without a file (Red dot)"></span>`;
+    }
+    return `<span style="display:inline-block;width:12px;height:12px;min-width:12px;min-height:12px;border-radius:50%;background-color:#9ca3af;box-shadow:0 0 0 2px rgba(156,163,175,0.25);" class="shrink-0" title="CSV status loading..."></span>`;
+  }
+
+  if (statusInfo.status === 'NO_FILE' || statusInfo.status === 'INVALID') {
+    return `<span style="display:inline-block;width:12px;height:12px;min-width:12px;min-height:12px;border-radius:50%;background-color:#dc2626;box-shadow:0 0 0 2px rgba(220,38,38,0.25);" class="shrink-0" title="Box without a file / missing (Red dot)"></span>`;
+  }
+  if (statusInfo.status === 'NO_DATA') {
+    return `<span style="display:inline-block;width:12px;height:12px;min-width:12px;min-height:12px;border-radius:50%;background-color:#f59e0b;box-shadow:0 0 0 2px rgba(245,158,11,0.25);" class="shrink-0" title="File without data (Yellow dot - 0 rows)"></span>`;
+  }
+  if (statusInfo.status === 'HAS_DATA') {
+    return `<span style="display:inline-block;width:12px;height:12px;min-width:12px;min-height:12px;border-radius:50%;background-color:#16a34a;box-shadow:0 0 0 2px rgba(22,163,74,0.25);" class="shrink-0" title="File valid with data (${statusInfo.row_count} rows) (Green dot)"></span>`;
+  }
+  return '';
+}
+
+function renderCsvStatusBadge(eqId) {
+  const statusInfo = state.csvStatuses ? state.csvStatuses[eqId] : null;
+  const allEq = [...(state.topology?.room_equipment || []), ...(state.topology?.shared_equipment || [])];
+  const eq = allEq.find(e => e.id === eqId);
+
+  if (!statusInfo) {
+    if (!eq || !eq.csv_filename) {
+      return `<span style="color:#dc2626; font-size:10px; font-weight:600;">(No file)</span>`;
+    }
+    return '';
+  }
+
+  if (statusInfo.status === 'NO_FILE' || statusInfo.status === 'INVALID') {
+    return `<span style="color:#dc2626; font-size:10px; font-weight:600;">(No file)</span>`;
+  }
+  if (statusInfo.status === 'NO_DATA') {
+    return `<span style="color:#d97706; font-size:10px; font-weight:600;">(0 rows)</span>`;
+  }
+  if (statusInfo.status === 'HAS_DATA') {
+    return `<span style="color:#16a34a; font-size:10px; font-weight:600;">(${statusInfo.row_count} rows)</span>`;
+  }
+  return '';
+}
+
+// -------------------------------------------------------------
 // API Calls & State Synchronization
 // -------------------------------------------------------------
 async function loadTopology() {
   try {
-    const res = await fetch('/api/topology');
-    if (!res.ok) throw new Error('Failed to load topology');
-    state.topology = await res.json();
+    const [topoRes, csvRes] = await Promise.all([
+      fetch('/api/topology'),
+      fetch('/api/csv/status').catch(() => null)
+    ]);
+    if (!topoRes.ok) throw new Error('Failed to load topology');
+    state.topology = await topoRes.json();
+
+    if (csvRes && csvRes.ok) {
+      const csvData = await csvRes.json();
+      state.csvStatuses = csvData.equipment_statuses || {};
+    }
 
     // Set default active floor if not set
     if (!state.activeFloorId && state.topology.floors && state.topology.floors.length > 0) {
@@ -325,6 +627,7 @@ function renderSidebar() {
               return `
                 <div class="flex items-center justify-between px-2 py-1 rounded border ${isEqSelected ? 'border-primary bg-primary/5' : 'border-border-subtle/60 bg-surface-canvas hover:border-primary/50'} transition-colors group cursor-pointer" onclick="selectEntity('equipment', '${eq.id}')">
                   <div class="flex items-center gap-1.5 min-w-0">
+                    ${renderCsvStatusDot(eq.id)}
                     <span class="material-symbols-outlined text-[15px] text-primary">${isVav ? 'hvac' : 'air'}</span>
                     <span class="font-code-xs text-code-xs ${isEqSelected ? 'text-primary font-medium' : 'text-on-surface'} truncate">${eq.name}</span>
                   </div>
@@ -381,6 +684,7 @@ function renderSidebar() {
 
       div.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
+          ${renderCsvStatusDot(eq.id)}
           <span class="material-symbols-outlined text-[18px] ${isSelected ? 'text-primary' : 'text-secondary group-hover:text-primary'} transition-colors">${icon}</span>
           <div class="flex flex-col min-w-0">
             <span class="font-label-sm text-label-sm ${isSelected ? 'text-primary font-semibold' : 'text-on-surface font-medium'} truncate">${eq.name}</span>
@@ -408,7 +712,14 @@ function renderSidebar() {
 function renderCanvas() {
   if (!state.topology) return;
 
-  // 1. Render Plant components into three tier rows: Chillers | EVs | AHUs
+  // 1. Apply saved position to Plant box if dragged previously
+  const plantBox = document.getElementById('plant-boundary-box');
+  if (plantBox && state.boxPositions && state.boxPositions['plant-boundary-box']) {
+    const pos = state.boxPositions['plant-boundary-box'];
+    plantBox.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+  }
+
+  // Render Plant components into three tier rows: Chillers | EVs | AHUs
   const tierChiller = document.getElementById('plant-tier-chiller');
   const tierEV = document.getElementById('plant-tier-ev');
   const tierAHU = document.getElementById('plant-tier-ahu');
@@ -447,7 +758,10 @@ function renderCanvas() {
       card.innerHTML = `
         ${isSelected ? `<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>` : ''}
         <div class="flex items-center justify-between mb-1">
-          <span class="font-label-sm text-label-sm font-semibold ${isSelected ? 'text-primary' : 'text-on-surface'} truncate">${eq.name}</span>
+          <div class="flex items-center gap-1.5 min-w-0">
+            ${renderCsvStatusDot(eq.id)}
+            <span class="font-label-sm text-label-sm font-semibold ${isSelected ? 'text-primary' : 'text-on-surface'} truncate">${eq.name}</span>
+          </div>
           <div class="flex items-center gap-1">
             <button class="w-5 h-5 flex items-center justify-center text-secondary hover:text-primary rounded opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openConfigureEntityDirectly('${eq.id}')" title="Edit Connections">
               <span class="material-symbols-outlined text-[15px]">hub</span>
@@ -456,6 +770,13 @@ function renderCanvas() {
           </div>
         </div>
         <div class="font-code-xs text-[11px] text-secondary truncate">${sublabel}</div>
+        <div class="flex items-center justify-between mt-1 text-[10px] font-code-xs border-t border-border-subtle pt-1">
+          <span class="text-secondary">CSV:</span>
+          <div class="flex items-center gap-1">
+            <span class="font-code-xs text-primary truncate max-w-[80px]" title="${eq.csv_filename || 'No file assigned'}">${eq.csv_filename || '—'}</span>
+            ${renderCsvStatusBadge(eq.id)}
+          </div>
+        </div>
         ${statHtml}
       `;
 
@@ -496,15 +817,18 @@ function renderCanvas() {
       floorBox.id = `floor-box-${floorId}`;
       floorBox.className = `floor-group-container relative rounded-lg border-2 ${isFloorSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border-strong/70 bg-surface-base/50'} pt-7 pb-5 px-5 flex flex-col gap-4 shrink-0 transition-all shadow-xs min-w-fit w-auto`;
 
-      // Floor Breakdown Badge on top-left border
+      // Apply saved position to Floor box if dragged previously
+      const savedPos = state.boxPositions && state.boxPositions[`floor-box-${floorId}`];
+      if (savedPos) {
+        floorBox.style.transform = `translate(${savedPos.x}px, ${savedPos.y}px)`;
+      }
+
+      // Floor Breakdown Badge on top-left border (Draggable + Click to select)
       const floorBadge = document.createElement('div');
-      floorBadge.className = 'absolute -top-3 left-3 bg-surface-base px-3 py-1 border border-border-strong rounded font-label-sm text-label-sm font-semibold text-on-surface flex items-center gap-1.5 shadow-xs cursor-pointer select-none hover:border-primary hover:text-primary transition-colors';
-      floorBadge.title = 'Click to view/edit Floor details';
-      floorBadge.onclick = (e) => {
-        e.stopPropagation();
-        selectEntity('floor', floorId);
-      };
+      floorBadge.className = 'floor-drag-handle absolute -top-3 left-3 bg-surface-base px-3 py-1 border border-border-strong rounded font-label-sm text-label-sm font-semibold text-on-surface flex items-center gap-1.5 shadow-xs cursor-grab active:cursor-grabbing select-none hover:border-primary hover:text-primary transition-colors';
+      floorBadge.title = 'Drag to move Floor section | Click to view/edit Floor details';
       floorBadge.innerHTML = `
+        <span class="material-symbols-outlined text-[15px] text-secondary/70">drag_indicator</span>
         <span class="material-symbols-outlined text-[15px] text-primary">layers</span>
         <span class="uppercase tracking-wide leading-none">${floorSection}</span>
         <span class="text-border-strong font-normal">|</span>
@@ -565,7 +889,10 @@ function renderCanvas() {
               <div class="p-2.5 rounded ${isEqSelected ? 'bg-primary/5 border-2 border-primary ring-2 ring-primary/20 shadow-sm' : 'bg-surface-canvas border border-border-strong hover:border-primary'} transition-all cursor-pointer relative group pointer-events-auto min-w-[125px]" id="node-${eq.id}" onclick="event.stopPropagation(); selectEntity('equipment', '${eq.id}')">
                 ${isEqSelected ? '<div class="absolute -top-3 right-2 bg-primary text-on-primary text-[9px] font-code-xs px-1.5 py-0.2 rounded shadow-xs uppercase tracking-tight">Active Selected</div>' : ''}
                 <div class="flex items-center justify-between mb-1">
-                  <span class="font-label-sm text-label-sm font-semibold ${isEqSelected ? 'text-primary font-bold' : 'text-on-surface'} truncate">${typeBadge}</span>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    ${renderCsvStatusDot(eq.id)}
+                    <span class="font-label-sm text-label-sm font-semibold ${isEqSelected ? 'text-primary font-bold' : 'text-on-surface'} truncate">${typeBadge}</span>
+                  </div>
                   <div class="flex items-center gap-1">
                     <button class="w-4 h-4 flex items-center justify-center text-secondary hover:text-primary rounded opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openConfigureEntityDirectly('${eq.id}')" title="Edit Connections">
                       <span class="material-symbols-outlined text-[13px]">hub</span>
@@ -579,9 +906,12 @@ function renderCanvas() {
                     <span class="text-secondary">${isVav ? 'Airflow:' : 'Status:'}</span>
                     <span class="font-semibold text-on-surface">${isVav ? 'Normal' : 'Active'}</span>
                   </div>
-                  <div class="flex justify-between font-code-xs text-[11px]">
+                  <div class="flex justify-between items-center font-code-xs text-[11px]">
                     <span class="text-secondary">CSV:</span>
-                    <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${eq.csv_filename || 'Not assigned'}">${eq.csv_filename || '—'}</span>
+                    <div class="flex items-center gap-1">
+                      <span class="font-code-xs text-[10px] text-primary truncate max-w-[65px]" title="${eq.csv_filename || 'Not assigned'}">${eq.csv_filename || '—'}</span>
+                      ${renderCsvStatusBadge(eq.id)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -690,13 +1020,16 @@ function updateCanvasSchematicArrows() {
       const ev = getCoords(evEl);
       if (!ev) return;
 
+      const arrowId = `arrow-chw-${ch.id}-${evObj.id}`;
+      const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+
       // Stagger horizontally: each Chiller→EV pair gets its own x offset column
-      const offset = (chwArrowIdx - Math.floor(targetEvs.length / 2)) * 14;
+      const offset = (chwArrowIdx - Math.floor(targetEvs.length / 2)) * 14 + off.x;
       const startX = Math.round(c.centerX + offset);
       const endX   = Math.round(ev.centerX + offset);
       const startY = Math.round(c.bottom);
       const endY   = Math.round(ev.y);
-      const midY   = Math.round((startY + endY) / 2);
+      const midY   = Math.round((startY + endY) / 2 + off.y);
 
       // Straight down if aligned, else step horizontally at midpoint
       let d;
@@ -711,9 +1044,15 @@ function updateCanvasSchematicArrows() {
 
       paths += `
         <!-- Chiller→EV ↓ (Blue 35%) -->
-        <path d="${d}" fill="none" stroke="#0284C7" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-chw)"></path>
-        <rect x="${labelX - 20}" y="${labelY - 8}" width="40" height="14" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8" stroke-opacity="0.35"></rect>
-        <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#0284C7" fill-opacity="0.8" font-weight="bold">6.1°C</text>
+        <g class="arrow-group" data-arrow-id="${arrowId}">
+          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="${d}" fill="none" stroke="#0284C7" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-chw)" pointer-events="none"></path>
+          <circle cx="${labelX}" cy="${labelY}" r="5" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move arrow route"></circle>
+          <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move arrow route">
+            <rect x="${labelX - 20}" y="${labelY - 8}" width="40" height="14" rx="3" fill="#FFFFFF" stroke="#0284C7" stroke-width="0.8" stroke-opacity="0.35"></rect>
+            <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#0284C7" fill-opacity="0.8" font-weight="bold">6.1°C</text>
+          </g>
+        </g>
       `;
       chwArrowIdx++;
     });
@@ -741,12 +1080,15 @@ function updateCanvasSchematicArrows() {
       const ahu = getCoords(ahuEl);
       if (!ahu) return;
 
-      const offset = (evArrowIdx - Math.floor(targetAhus.length / 2)) * 14;
+      const arrowId = `arrow-ev-${evObj.id}-${ahuObj.id}`;
+      const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+
+      const offset = (evArrowIdx - Math.floor(targetAhus.length / 2)) * 14 + off.x;
       const startX = Math.round(ev.centerX + offset);
       const endX   = Math.round(ahu.centerX + offset);
       const startY = Math.round(ev.bottom);
       const endY   = Math.round(ahu.y);
-      const midY   = Math.round((startY + endY) / 2);
+      const midY   = Math.round((startY + endY) / 2 + off.y);
 
       let d;
       if (Math.abs(startX - endX) < 4) {
@@ -760,9 +1102,15 @@ function updateCanvasSchematicArrows() {
 
       paths += `
         <!-- EV→AHU ↓ (Green 35%) -->
-        <path d="${d}" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-ev)"></path>
-        <rect x="${labelX - 22}" y="${labelY - 8}" width="44" height="14" rx="3" fill="#FFFFFF" stroke="#16A34A" stroke-width="0.8" stroke-opacity="0.35"></rect>
-        <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#16A34A" fill-opacity="0.8" font-weight="bold">Coil In</text>
+        <g class="arrow-group" data-arrow-id="${arrowId}">
+          <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="${d}" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-opacity="0.35" marker-end="url(#arrow-ev)" pointer-events="none"></path>
+          <circle cx="${labelX}" cy="${labelY}" r="5" fill="#FFFFFF" stroke="#16A34A" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move arrow route"></circle>
+          <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move arrow route">
+            <rect x="${labelX - 22}" y="${labelY - 8}" width="44" height="14" rx="3" fill="#FFFFFF" stroke="#16A34A" stroke-width="0.8" stroke-opacity="0.35"></rect>
+            <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#16A34A" fill-opacity="0.8" font-weight="bold">Coil In</text>
+          </g>
+        </g>
       `;
       evArrowIdx++;
     });
@@ -833,8 +1181,11 @@ function updateCanvasSchematicArrows() {
     const a = getCoords(aEl);
     if (!c || !a) return;
 
+    const arrowId = `arrow-return-${pair.ahu.id}-${pair.chiller.id}`;
+    const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+
     // Each pair gets its own Y level in the return channel (stacked, 20px apart)
-    const returnY = returnChannelBaseY + pairIdx * 20;
+    const returnY = returnChannelBaseY + pairIdx * 20 + off.y;
 
     // Exit the AHU left-side center; re-enter the chiller left-side bottom
     const ahuExitX    = Math.round(a.x);
@@ -843,7 +1194,7 @@ function updateCanvasSchematicArrows() {
     const chillerEntY = Math.round(c.bottom);
 
     // Left corridor X: 20px left of the leftmost plant card, stagger per pair
-    const corridorX   = Math.round(plantLeftMin - 24 - pairIdx * 16);
+    const corridorX   = Math.round(plantLeftMin - 24 - pairIdx * 16 + off.x);
 
     const d = `M ${ahuExitX} ${ahuExitY} L ${corridorX} ${ahuExitY} L ${corridorX} ${returnY} L ${chillerEntX} ${returnY} L ${chillerEntX} ${chillerEntY}`;
     const labelX = Math.round((corridorX + chillerEntX) / 2);
@@ -852,9 +1203,15 @@ function updateCanvasSchematicArrows() {
 
     paths += `
       <!-- Hydronic Return ${pair.ahu.name} → ${pair.chiller.name} (grey dashed 60%) -->
-      <path d="${d}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-return)"></path>
-      <rect x="${labelX - 58}" y="${labelY - 8}" width="116" height="15" rx="3" fill="#FFFFFF" stroke="#64748B" stroke-width="0.8" stroke-opacity="0.6"></rect>
-      <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#64748B" fill-opacity="0.8">◀ ${returnLabel} ◀</text>
+      <g class="arrow-group" data-arrow-id="${arrowId}">
+        <path d="${d}" fill="none" stroke="transparent" stroke-width="18" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+        <path d="${d}" fill="none" stroke="#64748B" stroke-dasharray="5,4" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-return)" pointer-events="none"></path>
+        <circle cx="${corridorX}" cy="${returnY}" r="5" fill="#FFFFFF" stroke="#64748B" stroke-width="2" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move return channel"></circle>
+        <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move return channel">
+          <rect x="${labelX - 58}" y="${labelY - 8}" width="116" height="15" rx="3" fill="#FFFFFF" stroke="#64748B" stroke-width="0.8" stroke-opacity="0.6"></rect>
+          <text x="${labelX}" y="${labelY + 3}" text-anchor="middle" font-size="9" fill="#64748B" fill-opacity="0.8">◀ ${returnLabel} ◀</text>
+        </g>
+      </g>
     `;
   });
 
@@ -889,21 +1246,17 @@ function updateCanvasSchematicArrows() {
 
     const minRoomTop = Math.min(...connectedRoomDivs.map(d => getCoords(d)?.y || 480));
 
+    const arrowId = `arrow-air-${ahuObj.id}`;
+    const off = (state.arrowOffsets && state.arrowOffsets[arrowId]) || { x: 0, y: 0 };
+
     // Each AHU gets its own manifold level, stacked above zones area
-    const manifoldY = Math.round(minRoomTop - 36 - ahuIdx * 22);
+    const manifoldY = Math.round(minRoomTop - 36 - ahuIdx * 22 + off.y);
 
     // Exit right side of AHU, then rise to manifold
     const exitX  = Math.round(ahu.right);
     const exitY  = Math.round(ahu.centerY);
-    const riserX = Math.round(ahu.right + 30 + ahuIdx * 20);
+    const riserX = Math.round(ahu.right + 30 + ahuIdx * 20 + off.x);
     const exitPath = `M ${exitX} ${exitY} L ${riserX} ${exitY} L ${riserX} ${manifoldY}`;
-
-    paths += `
-      <!-- AHU air trunk ${ahuObj.name} (orange 60%) -->
-      <path d="${exitPath}" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="3.5" stroke-opacity="0.6"></path>
-      <rect x="${riserX - 46}" y="${manifoldY - 18}" width="92" height="16" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8" stroke-opacity="0.6"></rect>
-      <text x="${riserX}" y="${manifoldY - 6}" text-anchor="middle" font-size="9" fill="#ff7a1a" fill-opacity="0.8" font-weight="bold">Supply Air (${ahuObj.name})</text>
-    `;
 
     const roomDrops = connectedRoomDivs.map(div => {
       const rc = getCoords(div);
@@ -920,14 +1273,24 @@ function updateCanvasSchematicArrows() {
       const maxX = Math.max(...roomDrops.map(d => d.x), riserX);
 
       paths += `
-        <!-- Air manifold ${ahuObj.name} -->
-        <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-opacity="0.6"></path>
+        <!-- AHU air trunk ${ahuObj.name} (orange 60%) -->
+        <g class="arrow-group" data-arrow-id="${arrowId}">
+          <path d="${exitPath}" fill="none" stroke="transparent" stroke-width="20" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="${exitPath}" fill="none" stroke="#ff7a1a" stroke-linecap="round" stroke-width="3.5" stroke-opacity="0.6" pointer-events="none"></path>
+          <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="transparent" stroke-width="20" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:stroke-primary/25 transition-colors" data-arrow-id="${arrowId}" style="pointer-events:stroke;"></path>
+          <path d="M ${minX} ${manifoldY} L ${maxX} ${manifoldY}" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-opacity="0.6" pointer-events="none"></path>
+          <circle cx="${riserX}" cy="${manifoldY}" r="6" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="2.5" class="pointer-events-auto cursor-grab active:cursor-grabbing hover:scale-125 transition-transform" data-arrow-id="${arrowId}" title="Drag to move supply air manifold & riser"></circle>
+          <g class="pointer-events-auto cursor-grab active:cursor-grabbing" data-arrow-id="${arrowId}" title="Drag to move supply air manifold & riser">
+            <rect x="${riserX - 46}" y="${manifoldY - 18}" width="92" height="16" rx="3" fill="#FFFFFF" stroke="#ff7a1a" stroke-width="0.8" stroke-opacity="0.6"></rect>
+            <text x="${riserX}" y="${manifoldY - 6}" text-anchor="middle" font-size="9" fill="#ff7a1a" fill-opacity="0.8" font-weight="bold">Supply Air (${ahuObj.name})</text>
+          </g>
+        </g>
       `;
 
       roomDrops.forEach(drop => {
         paths += `
           <!-- Air drop to room -->
-          <path d="M ${drop.x} ${manifoldY} L ${drop.x} ${drop.top - 4}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-air)"></path>
+          <path d="M ${drop.x} ${manifoldY} L ${drop.x} ${drop.top - 4}" fill="none" stroke="#ff7a1a" stroke-width="2.5" stroke-opacity="0.6" marker-end="url(#arrow-air)" pointer-events="none"></path>
         `;
       });
     }
@@ -1029,6 +1392,33 @@ function openDetailDrawer(type, entity) {
 
       if (csvInput) csvInput.value = entity.csv_filename || '';
       if (categoryBadge) categoryBadge.innerText = entity.category;
+
+      const csvStatusBox = document.getElementById('drawer-csv-status-box');
+      if (csvStatusBox) {
+        const info = state.csvStatuses ? state.csvStatuses[entity.id] : null;
+        if (!info || info.status === 'NO_FILE') {
+          csvStatusBox.innerHTML = `
+            <div class="flex items-center gap-2 p-2 rounded bg-error/10 border border-error/30 text-error font-code-xs text-[11px]">
+              <span class="w-2 h-2 rounded-full bg-status-error shrink-0"></span>
+              <span><strong>No CSV File:</strong> Filename missing or unassigned (Red dot)</span>
+            </div>
+          `;
+        } else if (info.status === 'NO_DATA') {
+          csvStatusBox.innerHTML = `
+            <div class="flex items-center gap-2 p-2 rounded bg-status-warning/10 border border-status-warning/30 text-status-warning font-code-xs text-[11px]">
+              <span class="w-2 h-2 rounded-full bg-status-warning shrink-0"></span>
+              <span><strong>File Without Data:</strong> 0 data rows${info.created_dummy ? ' (Dummy template created)' : ''} (Yellow dot)</span>
+            </div>
+          `;
+        } else if (info.status === 'HAS_DATA') {
+          csvStatusBox.innerHTML = `
+            <div class="flex items-center gap-2 p-2 rounded bg-status-success/10 border border-status-success/30 text-status-success font-code-xs text-[11px]">
+              <span class="w-2 h-2 rounded-full bg-status-success shrink-0"></span>
+              <span><strong>Active Telemetry:</strong> ${info.row_count} data rows detected (Green dot)</span>
+            </div>
+          `;
+        }
+      }
 
       if (paramsList) {
         paramsList.innerHTML = (entity.standard_parameters || []).map(p => `
@@ -2817,7 +3207,7 @@ function zoomCanvas(delta) {
   // Zoom towards the centre of the viewport
   const cx = rect.width / 2;
   const cy = rect.height / 2;
-  const newZoom = Math.min(Math.max(state.currentZoom + delta, 0.3), 2.5);
+  const newZoom = Math.min(Math.max(state.currentZoom + delta, 0.15), 3.0);
   const ratio = newZoom / state.currentZoom;
   state.panX = cx - ratio * (cx - state.panX);
   state.panY = cy - ratio * (cy - state.panY);
@@ -2828,16 +3218,58 @@ function zoomCanvas(delta) {
 
 function resetZoom() {
   state.currentZoom = 1.0;
-  state.panX = 32;
-  state.panY = 32;
+  state.panX = 40;
+  state.panY = 40;
   applyCanvasTransform();
   updateCanvasSchematicArrows();
 }
 
 function fitCanvas() {
-  state.currentZoom = 0.85;
-  state.panX = 24;
-  state.panY = 24;
+  const viewport = document.getElementById('canvas-viewport');
+  const plant = document.getElementById('plant-boundary-box');
+  const floors = Array.from(document.querySelectorAll('.floor-group-container'));
+  if (!viewport || (!plant && floors.length === 0)) {
+    state.currentZoom = 0.85;
+    state.panX = 40;
+    state.panY = 40;
+    applyCanvasTransform();
+    updateCanvasSchematicArrows();
+    return;
+  }
+
+  const vRect = viewport.getBoundingClientRect();
+  const workspace = document.getElementById('canvas-workspace');
+  if (!workspace) return;
+  const wRect = workspace.getBoundingClientRect();
+  const scale = state.currentZoom || 1.0;
+
+  const boxes = [plant, ...floors].filter(Boolean);
+  const rects = boxes.map(b => {
+    const r = b.getBoundingClientRect();
+    return {
+      left: (r.left - wRect.left) / scale,
+      top: (r.top - wRect.top) / scale,
+      right: (r.right - wRect.left) / scale,
+      bottom: (r.bottom - wRect.top) / scale
+    };
+  });
+
+  const minX = Math.min(...rects.map(r => r.left));
+  const minY = Math.min(...rects.map(r => r.top));
+  const maxX = Math.max(...rects.map(r => r.right));
+  const maxY = Math.max(...rects.map(r => r.bottom));
+
+  const contentW = Math.max(maxX - minX + 120, 600);
+  const contentH = Math.max(maxY - minY + 120, 500);
+
+  const zoomX = vRect.width / contentW;
+  const zoomY = vRect.height / contentH;
+  const fitZoom = Math.min(Math.max(Math.min(zoomX, zoomY), 0.2), 1.2);
+
+  state.currentZoom = fitZoom;
+  state.panX = Math.round((vRect.width - (maxX - minX) * fitZoom) / 2 - minX * fitZoom);
+  state.panY = Math.round((vRect.height - (maxY - minY) * fitZoom) / 2 - minY * fitZoom);
+
   applyCanvasTransform();
   updateCanvasSchematicArrows();
 }
@@ -2877,29 +3309,128 @@ function toggleRoom(roomId) {
   }
 }
 
-function copyFolderPath() {
-  navigator.clipboard.writeText("data/csv/").then(() => {
-    showToast("Copied 'data/csv/' path to clipboard");
-  }).catch(() => {
-    prompt("Source CSV directory path:", "data/csv/");
-  });
+// -------------------------------------------------------------
+// CSV Folder Integration & Processing Functions
+// -------------------------------------------------------------
+async function openCsvDirectory() {
+  try {
+    const resp = await fetch('/api/csv/open-directory', { method: 'POST' });
+    const data = await resp.json();
+    if (data.opened) {
+      showToast('Opened data/csv/ directory in File Explorer');
+    } else {
+      showToast('Source CSV folder: ' + (data.csv_dir || 'data/csv/'));
+    }
+  } catch (err) {
+    console.error('Failed to open CSV directory:', err);
+    showToast('Source CSV folder: data/csv/');
+  }
 }
 
-function simulateDataProcessing() {
+// Fallback / legacy alias
+function copyFolderPath() {
+  openCsvDirectory();
+}
+
+function renderTopology() {
+  renderSidebar();
+  renderCanvas();
+  if (state.selectedEntity) {
+    refreshSelectedEntity();
+  }
+}
+
+async function fetchCsvStatus() {
+  try {
+    const resp = await fetch('/api/csv/status');
+    if (resp.ok) {
+      const data = await resp.json();
+      state.csvStatuses = data.equipment_statuses || {};
+      renderTopology();
+    }
+  } catch (err) {
+    console.warn('Could not fetch CSV status:', err);
+  }
+}
+
+async function processCsvData() {
   const btn = document.getElementById('btn-process-data');
   if (!btn) return;
-  const originalText = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Scanning data/csv/...`;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">sync</span><span>Scanning & Processing...</span>`;
   btn.classList.add('opacity-75');
 
-  setTimeout(() => {
-    btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span> data/csv/ scanned (Ready)`;
-    btn.classList.remove('opacity-75');
+  try {
+    const resp = await fetch('/api/csv/process', { method: 'POST' });
+    if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+    const data = await resp.json();
+
+    state.csvStatuses = data.equipment_statuses || {};
+    // Re-render UI to apply dots
+    renderTopology();
+
+    if (data.missing_count > 0) {
+      showToast(`Scan complete: ${data.total_files_found} files found. ${data.missing_count} missing file(s) marked with red dot.`, true);
+    } else {
+      showToast(`Scan complete: All ${data.total_files_found} files verified and processed.`, false);
+    }
+
+    btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span><span>Processed</span>`;
     setTimeout(() => {
-      btn.innerHTML = originalText;
+      btn.innerHTML = originalHtml;
+      btn.classList.remove('opacity-75');
     }, 2000);
-  }, 1000);
+  } catch (err) {
+    console.error('Error processing CSVs:', err);
+    showToast('Failed to process CSV files: ' + err.message, true);
+    btn.innerHTML = originalHtml;
+    btn.classList.remove('opacity-75');
+  }
 }
+
+async function createMissingDummyFiles() {
+  const btn = document.getElementById('btn-create-dummies');
+  if (!btn) return;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">note_add</span><span>Creating Templates...</span>`;
+  btn.classList.add('opacity-75');
+
+  try {
+    const resp = await fetch('/api/csv/create-dummy-files', { method: 'POST' });
+    if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+    const data = await resp.json();
+
+    state.csvStatuses = data.equipment_statuses || {};
+    renderTopology();
+
+    const createdCount = data.created_dummy_files ? data.created_dummy_files.length : 0;
+    if (createdCount > 0) {
+      showToast(`Created ${createdCount} dummy CSV template file(s) without data (yellow dot) in data/csv/.`, false);
+    } else {
+      showToast('All configured CSV files exist. No missing templates to create.', false);
+    }
+
+    btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span><span>Templates Created</span>`;
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      btn.classList.remove('opacity-75');
+    }, 2000);
+  } catch (err) {
+    console.error('Error creating dummy files:', err);
+    showToast('Failed to create dummy files: ' + err.message, true);
+    btn.innerHTML = originalHtml;
+    btn.classList.remove('opacity-75');
+  }
+}
+
+// Fallback alias
+function simulateDataProcessing() {
+  processCsvData();
+}
+
+window.openCsvDirectory = openCsvDirectory;
+window.processCsvData = processCsvData;
+window.createMissingDummyFiles = createMissingDummyFiles;
 
 // -------------------------------------------------------------
 // Toast Notification (Strictly max 2.5 - 3 seconds, instant close)
